@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Mantenedor de Productos{% endblock %}
+{% block banner_title %}Productos y stock{% endblock %}
+{% block banner_text %}Administra nombre, descripcion, cantidad, imagen y precio desde un solo mantenedor.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Catalogo</p>
+    <h1>Mantenedor de productos</h1>
+    <p class="intro product-intro">
+      Registra y actualiza tus productos en una vista mas ordenada, con datos de stock, precio, imagen y descripcion.
+    </p>
+
+    <section class="product-create-card">
+      <div class="product-create-header">
+        <div>
+          <p class="eyebrow">Alta rapida</p>
+          <h2>Nuevo producto</h2>
+        </div>
+      </div>
+      <form class="product-form-grid" method="post" action="{{ url_for('create_product') }}">
+        <div>
+          <label for="product-name"><strong>Nombre</strong></label>
+          <input id="product-name" name="name" type="text" placeholder="Ejemplo: Deck Box Dragon Shield" required>
+        </div>
+        <div>
+          <label for="product-brand"><strong>Marca</strong></label>
+          <input id="product-brand" name="brand" type="text" placeholder="Ejemplo: Ultra Pro">
+        </div>
+        <div>
+          <label for="product-price"><strong>Precio</strong></label>
+          <input id="product-price" name="price" type="number" min="0" step="0.01" placeholder="0.00" required>
+        </div>
+        <div>
+          <label for="product-quantity"><strong>Cantidad</strong></label>
+          <input id="product-quantity" name="quantity" type="number" min="0" step="1" placeholder="0" required>
+        </div>
+        <div class="product-form-span">
+          <label for="product-image"><strong>Imagen</strong></label>
+          <input id="product-image" name="image" type="url" placeholder="https://...">
+        </div>
+        <div class="product-form-span">
+          <label for="product-description"><strong>Descripcion</strong></label>
+          <textarea id="product-description" name="description" rows="3"></textarea>
+        </div>
+        <div class="product-form-actions">
+          <button class="nav-button save-button" type="submit">Guardar producto</button>
+        </div>
+      </form>
+    </section>
+
+    {% if products %}
+      <div class="products-section-head">
+        <h2>Productos registrados</h2>
+        <p class="muted">{{ products|length }} producto(s)</p>
+      </div>
+      <section class="products-table">
+        <div class="products-head">Producto</div>
+        <div class="products-head">Marca</div>
+        <div class="products-head">Precio</div>
+        <div class="products-head">Cantidad</div>
+        <div class="products-head">Imagen</div>
+        <div class="products-head">Descripcion</div>
+        <div class="products-head">Acciones</div>
+
+        {% for product in products %}
+          <form class="products-row" method="post" action="{{ url_for('update_product', product_index=loop.index0) }}">
+            <div class="products-cell">
+              <p class="products-mobile-label">Producto</p>
+              <label class="sr-only" for="product-name-{{ loop.index0 }}">Nombre</label>
+              <input id="product-name-{{ loop.index0 }}" name="name" type="text" value="{{ product.name }}" required>
+            </div>
+            <div class="products-cell">
+              <p class="products-mobile-label">Marca</p>
+              <label class="sr-only" for="product-brand-{{ loop.index0 }}">Marca</label>
+              <input id="product-brand-{{ loop.index0 }}" name="brand" type="text" value="{{ product.brand or '' }}">
+            </div>
+            <div class="products-cell">
+              <p class="products-mobile-label">Precio</p>
+              <label class="sr-only" for="product-price-{{ loop.index0 }}">Precio</label>
+              <input id="product-price-{{ loop.index0 }}" name="price" type="number" min="0" step="0.01" value="{{ product.price }}" required>
+            </div>
+            <div class="products-cell">
+              <p class="products-mobile-label">Cantidad</p>
+              <label class="sr-only" for="product-quantity-{{ loop.index0 }}">Cantidad</label>
+              <input id="product-quantity-{{ loop.index0 }}" name="quantity" type="number" min="0" step="1" value="{{ product.quantity }}" required>
+            </div>
+            <div class="products-cell">
+              <p class="products-mobile-label">Imagen</p>
+              <label class="sr-only" for="product-image-{{ loop.index0 }}">Imagen</label>
+              <input id="product-image-{{ loop.index0 }}" name="image" type="url" value="{{ product.image or '' }}" placeholder="https://...">
+            </div>
+            <div class="products-cell">
+              <p class="products-mobile-label">Descripcion</p>
+              <label class="sr-only" for="product-description-{{ loop.index0 }}">Descripcion</label>
+              <textarea id="product-description-{{ loop.index0 }}" name="description" rows="2">{{ product.description or '' }}</textarea>
+            </div>
+            <div class="products-cell products-actions">
+              <p class="products-mobile-label">Acciones</p>
+              <button class="nav-button save-button" type="submit">Actualizar</button>
+              <button
+                class="delete-button inline-delete-button"
+                type="submit"
+                formmethod="post"
+                formaction="{{ url_for('delete_product', product_index=loop.index0) }}"
+              >Eliminar</button>
+            </div>
+          </form>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Todavia no hay productos registrados.</section>
+    {% endif %}
+  </section>
+{% endblock %}

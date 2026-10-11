@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil de {{ profile.user.name or 'Usuario' }}{% endblock %}
+{% block banner_title %}Perfil de usuario{% endblock %}
+{% block banner_text %}Revisa el pais, las cartas publicadas y las referencias recibidas por este usuario.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel user-profile-panel">
+    <div class="user-profile-hero">
+      <div>
+        <p class="eyebrow">Comunidad</p>
+        <h1>{{ profile.user.name or 'Usuario' }}</h1>
+      </div>
+      <div class="user-profile-badges">
+        {% if profile.country %}
+          <div class="user-profile-badge">
+            {% if profile.country.flag %}
+              <img src="{{ profile.country.flag }}" alt="Bandera de {{ profile.country.label }}">
+            {% endif %}
+            <span>{{ profile.country.label }}</span>
+          </div>
+        {% endif %}
+        {% if profile.average_rating %}
+          <div class="user-profile-badge">
+            <span>{{ profile.average_rating }}/5</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <section class="user-profile-layout">
+      <article class="saved-card">
+        <h2>Cartas ingresadas</h2>
+        {% if profile.saved_cards %}
+          <div class="user-cards-list">
+            {% for item in profile.saved_cards %}
+              <a class="user-card-row" href="{{ url_for('card_detail', card_id=item.card_id) }}">
+                <span class="card-hover-trigger" data-card-image="{{ item.image_url or '' }}">{{ item.name }}</span>
+                <span class="muted">{{ item.intent|capitalize }} · {{ item.edition }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Este usuario todavia no ha ingresado cartas.</p>
+        {% endif %}
+      </article>
+
+      <article class="saved-card">
+        <h2>Referencias</h2>
+        {% if can_leave_reference %}
+          <form class="user-reference-form" method="post" action="{{ url_for('save_user_reference', user_id=profile.user.user_id) }}">
+            <div>
+              <label for="reference-text"><strong>Comentario</strong></label>
+              <textarea id="reference-text" name="reference_text" rows="4" placeholder="Escribe tu referencia sobre este usuario"></textarea>
+            </div>
+            <div class="user-reference-rating">
+              <label for="rating"><strong>Calificacion</strong></label>
+              <select id="rating" name="rating">
+                {% for value in range(1, 6) %}
+                  <option value="{{ value }}">{{ "★" * value }}{{ "☆" * (5 - value) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button class="nav-button save-button" type="submit">Guardar referencia</button>
+          </form>
+        {% elif current_user and current_user.user_id == profile.user.user_id %}
+          <p class="muted">No puedes dejar referencias sobre tu propio perfil, pero aqui veras las que otras personas te dejen.</p>
+        {% else %}
+          <p class="muted">Inicia sesion para dejar una referencia.</p>
+        {% endif %}
+
+        {% if profile.references %}
+          <div class="user-reference-list">
+            {% for item in profile.references %}
+              <article class="user-reference-card">
+                <div class="user-reference-head">
+                  {% if item.author_profile_url %}
+                    <a class="saved-link" href="{{ item.author_profile_url }}">{{ item.author_name }}</a>
+                  {% else %}
+                    <strong>{{ item.author_name }}</strong>
+                  {% endif %}
+                  <span class="user-reference-stars">{{ item.stars }}</span>
+                </div>
+                <p>{{ item.text }}</p>
+                <p class="muted">{{ item.created_at }}</p>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Todavia no hay referencias para este usuario.</p>
+        {% endif %}
+      </article>
+    </section>
+  </section>
+{% endblock %}

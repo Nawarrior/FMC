@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Mi listado{% endblock %}
+{% block banner_title %}Tus cartas guardadas{% endblock %}
+{% block banner_text %}Revisa las cartas que buscas u ofreces, junto con su edicion y cantidad registrada.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <h1>Mi listado</h1>
+
+    <form class="saved-filters" method="get" action="{{ url_for('saved_cards_page') }}">
+      <div>
+        <label for="status-filter"><strong>Estado</strong></label>
+        <select id="status-filter" name="status">
+          <option value="">Todos</option>
+          <option value="busco" {% if status_filter == 'busco' %}selected{% endif %}>Busco</option>
+          <option value="ofrezco" {% if status_filter == 'ofrezco' %}selected{% endif %}>Ofrezco</option>
+        </select>
+      </div>
+      <div>
+        <label for="rarity-filter"><strong>Rareza</strong></label>
+        <select id="rarity-filter" name="rarity">
+          <option value="">Todas</option>
+          {% for rarity in available_rarities %}
+            <option value="{{ rarity }}" {% if rarity_filter == rarity %}selected{% endif %}>{{ rarity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="saved-filter-actions">
+        <button class="nav-button save-button" type="submit">Filtrar</button>
+      </div>
+    </form>
+
+    {% if saved_cards %}
+      <section class="saved-grid">
+        {% for item in saved_cards %}
+          <article class="saved-card">
+            <p class="eyebrow">{{ item.intent|upper }} · {{ item.edition_code }} · {{ item.rarity or 'sin rareza' }}</p>
+            <h2>
+              <a
+                class="saved-link card-hover-trigger"
+                href="{{ url_for('card_detail', card_id=item.card_id) }}"
+                data-card-image="{{ item.image_url or '' }}"
+              >{{ item.name }}</a>
+            </h2>
+              {% if item.user_name %}
+                <p class="muted">Registrada por <a class="saved-link" href="{{ item.user_profile_url }}">{{ item.user_name }}</a></p>
+              {% endif %}
+
+            {% if item.can_manage %}
+              <form class="saved-edit-form" method="post" action="{{ url_for('update_saved_card', item_index=item.index) }}">
+                <div class="saved-edit-grid">
+                  <div>
+                    <label for="edition-{{ item.index }}"><strong>Edicion</strong></label>
+                    <select id="edition-{{ item.index }}" name="edition">
+                      {% if item.editions %}
+                        {% for edition in item.editions %}
+                          <option value="{{ edition.id }}" {% if edition.selected %}selected{% endif %}>{{ edition.label }}</option>
+                        {% endfor %}
+                      {% else %}
+                        <option value="{{ item.card_id }}">{{ item.edition }}</option>
+                      {% endif %}
+                    </select>
+                  </div>
+                  <div>
+                    <label for="intent-{{ item.index }}"><strong>Estado</strong></label>
+                    <select id="intent-{{ item.index }}" name="intent">
+                      <option value="busco" {% if item.intent == 'busco' %}selected{% endif %}>Busco</option>
+                      <option value="ofrezco" {% if item.intent == 'ofrezco' %}selected{% endif %}>Ofrezco</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="quantity-{{ item.index }}"><strong>Cantidad</strong></label>
+                    <select id="quantity-{{ item.index }}" name="quantity">
+                      {% for amount in ['1', '2', '3', '4'] %}
+                        <option value="{{ amount }}" {% if item.quantity|string == amount %}selected{% endif %}>{{ amount }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="saved-note-wrap">
+                  <label for="note-{{ item.index }}"><strong>Nota</strong></label>
+                  <textarea id="note-{{ item.index }}" name="note" rows="3">{{ item.note or '' }}</textarea>
+                </div>
+
+                <div class="saved-actions">
+                  <button class="nav-button save-button" type="submit">Actualizar</button>
+                </div>
+              </form>
+
+              <form method="post" action="{{ url_for('delete_saved_card', item_index=item.index) }}">
+                <button class="delete-button" type="submit">Eliminar</button>
+              </form>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Aun no has guardado cartas en tu listado.</section>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}{{ card.name if card else 'Carta no disponible' }}{% endblock %}
+{% block banner_title %}Detalle de carta y sus ediciones{% endblock %}
+{% block banner_text %}Explora la carta seleccionada, revisa sus sets disponibles y vuelve a buscar sin abandonar la misma interfaz.{% endblock %}
+
+{% block content %}
+  <section class="detail-shell">
+    <a class="back-link" href="{{ url_for('index') }}">&larr; Volver al buscador</a>
+
+    {% if error %}
+      <section class="message error">{{ error }}</section>
+    {% elif card %}
+      <section class="detail-grid">
+        <div class="image-panel">
+          {% if card.image_url %}
+            <img src="{{ card.image_url }}" alt="Imagen de {{ card.name }}">
+          {% else %}
+            <div class="image-fallback">Sin imagen disponible</div>
+          {% endif %}
+        </div>
+
+        <article class="info-panel">
+          <p class="eyebrow">{{ card.set_name }} · {{ card.set_code|upper }} #{{ card.collector_number }}</p>
+          <div class="detail-title-row">
+            <h1 class="card-hover-trigger" data-card-image="{{ card.image_url or '' }}">{{ card.name }}</h1>
+            {% if saved_status and saved_status.publications %}
+              <div class="card-publications">
+                {% for publication in saved_status.publications %}
+                  <div class="card-publication">
+                    <div class="card-publication-info">
+                      <a class="saved-status-link" href="{{ url_for('community_cards_page', name=card.name, status=publication.intent) }}">
+                        {{ publication.intent|capitalize }}
+                      </a>
+                      {% if publication.user_profile_url %}
+                        <a class="saved-link" href="{{ publication.user_profile_url }}">{{ publication.user_name }}</a>
+                      {% else %}
+                        <span>{{ publication.user_name }}</span>
+                      {% endif %}
+                    </div>
+                    {% if publication.note %}
+                      <p class="card-publication-note"><strong>Nota:</strong> {{ publication.note }}</p>
+                    {% endif %}
+                    {% if not current_user %}
+                      <a class="nav-button community-contact-button" href="{{ url_for('register_page') }}">Contactar</a>
+                    {% elif publication.user_id and current_user.user_id != publication.user_id %}
+                      <button
+                        class="nav-button community-contact-button"
+                        type="button"
+                        data-contact-open
+                        data-receiver-id="{{ publication.user_id }}"
+                        data-receiver-name="{{ publication.user_name }}"
+                        data-card-id="{{ publication.card_id }}"
+                        data-card-name="{{ card.name }}"
+                      >Contactar</button>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          {% if editions %}
+            <form class="edition-form" method="get" action="{{ url_for('card_detail', card_id=card.id) }}" data-edition-form>
+              <input type="hidden" id="edition" name="edition" value="{{ request.args.get('edition', card.id) }}">
+              <label for="edition-picker-button"><strong>Set Name</strong></label>
+              <div class="edition-picker" data-edition-picker>
+                {% set selected_edition = editions|selectattr('selected')|list|first %}
+                <button
+                  id="edition-picker-button"
+                  class="edition-picker-trigger"
+                  type="button"
+                  {% if saved_status and (not current_user or saved_status.current_user_has_publication) %}disabled aria-disabled="true"{% endif %}
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  data-edition-picker-trigger
+                >
+                  <span class="edition-picker-option">
+                    <span class="edition-symbol-wrap">
+                      <i class="ss ss-{{ (selected_edition.set_code if selected_edition else card.set_code)|lower }}"></i>
+                    </span>
+                    <span>
+                      {{ selected_edition.label if selected_edition else card.set_name }}
+                    </span>
+                  </span>
+                  <span class="edition-picker-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="edition-picker-menu" data-edition-picker-menu hidden>
+                  <ul class="edition-picker-list" role="listbox" aria-label="Ediciones disponibles">
+                    {% for edition in editions %}
+                      <li>
+                        <button
+                          type="button"
+                          class="edition-picker-item{% if edition.selected %} is-selected{% endif %}"
+                          data-edition-value="{{ edition.id }}"
+                          data-edition-picker-item
+                        >
+                          <span class="edition-picker-option">
+                            <span class="edition-symbol-wrap">
+                              <i class="ss ss-{{ edition.set_code|lower }}"></i>
+                            </span>
+                            <span>{{ edition.label }}</span>
+                          </span>
+                        </button>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+              <span class="sr-only" role="status" aria-live="polite" data-edition-status></span>
+            </form>
+          {% endif %}
+
+          {% if current_user and (not saved_status or not saved_status.current_user_has_publication) %}
+            <form class="trade-form" method="post" action="{{ url_for('save_card_entry', card_id=card.id) }}">
+              <input type="hidden" name="edition" value="{{ request.args.get('edition', card.id) }}">
+              <div class="trade-grid">
+                <div>
+                  <label for="intent"><strong>Estado</strong></label>
+                  <select id="intent" name="intent">
+                    <option value="busco">Busco</option>
+                    <option value="ofrezco">Ofrezco</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="quantity"><strong>Cantidad</strong></label>
+                  <select id="quantity" name="quantity">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                  </select>
+                </div>
+                <div class="trade-submit">
+                  <label class="sr-only" for="save-card">Guardar</label>
+                  <button id="save-card" class="nav-button save-button" type="submit">Guardar carta</button>
+                </div>
+              </div>
+              <div class="trade-note">
+                <label for="note"><strong>Nota opcional</strong></label>
+                <textarea id="note" name="note" rows="3" placeholder="Ejemplo: version preferida, estado de intercambio, comentario..."></textarea>
+              </div>
+            </form>
+          {% endif %}
+
+{% if card.mana_cost %}
+            <p class="headline-meta mana-text">{{ card.mana_cost }} · CMC {{ card.cmc }}</p>
+          {% endif %}
+          <p>{{ card.type_line }}</p>
+
+          {% if card.oracle_text %}
+            <section>
+              <h2>Texto</h2>
+              <p class="preserve-linebreaks mana-text">{{ card.oracle_text }}</p>
+            </section>
+          {% endif %}
+
+          {% if card.flavor_text %}
+            <section>
+              <h2>Flavor</h2>
+              <p class="flavor preserve-linebreaks">{{ card.flavor_text }}</p>
+            </section>
+          {% endif %}
+
+          <section class="stats-grid">
+            <div><strong>Rareza</strong><span>{{ card.rarity or 'N/D' }}</span></div>
+            <div><strong>Colores</strong><span>{{ card.colors|join(', ') if card.colors else 'Incolora' }}</span></div>
+            <div><strong>Lanzamiento</strong><span>{{ card.released_at or 'N/D' }}</span></div>
+            <div><strong>Artista</strong><span>{{ card.artist or 'N/D' }}</span></div>
+            {% if card.power and card.toughness %}
+              <div><strong>P/T</strong><span>{{ card.power }}/{{ card.toughness }}</span></div>
+            {% endif %}
+            {% if card.loyalty %}
+              <div><strong>Lealtad</strong><span>{{ card.loyalty }}</span></div>
+            {% endif %}
+            {% if card.defense %}
+              <div><strong>Defensa</strong><span>{{ card.defense }}</span></div>
+            {% endif %}
+          </section>
+
+          {% if card.keywords %}
+            <section>
+              <h2>Keywords</h2>
+              <p>{{ card.keywords|join(', ') }}</p>
+            </section>
+          {% endif %}
+
+          <section class="links-panel">
+            {% if card.usd_price %}
+              <p><strong>USD:</strong> ${{ card.usd_price }}</p>
+            {% endif %}
+            {% if card.usd_foil_price %}
+              <p><strong>USD Foil:</strong> ${{ card.usd_foil_price }}</p>
+            {% endif %}
+            {% if card.eur_price %}
+              <p><strong>EUR:</strong> €{{ card.eur_price }}</p>
+            {% endif %}
+            {% if card.scryfall_uri %}
+              <a href="{{ card.scryfall_uri }}" target="_blank" rel="noreferrer">Abrir en Scryfall</a>
+            {% endif %}
+            {% if card.tcgplayer %}
+              <a href="{{ card.tcgplayer }}" target="_blank" rel="noreferrer">Ver en TCGplayer</a>
+            {% endif %}
+            {% if card.cardmarket %}
+              <a href="{{ card.cardmarket }}" target="_blank" rel="noreferrer">Ver en Cardmarket</a>
+            {% endif %}
+          </section>
+        </article>
+      </section>
+    {% endif %}
+  </section>
+
+  {% if current_user and saved_status and saved_status.publications %}
+    <div class="contact-modal" id="card-contact-modal" hidden>
+      <div class="contact-modal-backdrop" data-contact-close></div>
+      <div class="contact-modal-panel">
+        <div class="contact-modal-head">
+          <h2>Contactar usuario</h2>
+          <button class="contact-modal-close" type="button" data-contact-close aria-label="Cerrar">×</button>
+        </div>
+        <form class="contact-form" method="post" action="{{ url_for('send_message') }}">
+          <input type="hidden" name="receiver_user_id" id="card-contact-receiver-id">
+          <input type="hidden" name="card_id" id="card-contact-card-id">
+          <input type="hidden" name="card_name" id="card-contact-card-name">
+          <input type="hidden" name="return_card_id" value="{{ card.id }}">
+          <p class="muted" id="card-contact-modal-copy"></p>
+          <textarea name="message_text" id="card-contact-message-text" rows="5" placeholder="Escribe tu mensaje"></textarea>
+          <button class="nav-button save-button" type="submit">Enviar mensaje</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    (() => {
+      const contactModal = document.getElementById("card-contact-modal");
+      if (contactModal) {
+        const receiverInput = document.getElementById("card-contact-receiver-id");
+        const cardIdInput = document.getElementById("card-contact-card-id");
+        const cardNameInput = document.getElementById("card-contact-card-name");
+        const contactCopy = document.getElementById("card-contact-modal-copy");
+        const messageInput = document.getElementById("card-contact-message-text");
+        let contactTrigger = null;
+
+        document.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-contact-open]");
+          if (button) {
+            contactTrigger = button;
+            receiverInput.value = button.dataset.receiverId || "";
+            cardIdInput.value = button.dataset.cardId || "";
+            cardNameInput.value = button.dataset.cardName || "";
+            contactCopy.textContent = `Enviar mensaje a ${button.dataset.receiverName || "usuario"} por la carta ${button.dataset.cardName || ""}`.trim();
+            messageInput.value = "";
+            contactModal.hidden = false;
+            messageInput.focus();
+            return;
+          }
+
+          if (event.target.closest("[data-contact-close]")) {
+            contactModal.hidden = true;
+            contactTrigger?.focus({ preventScroll: true });
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && !contactModal.hidden) {
+            contactModal.hidden = true;
+            contactTrigger?.focus({ preventScroll: true });
+          }
+        });
+      }
+
+      let activePicker = null;
+      let loadingEdition = false;
+
+      const closeMenu = (picker) => {
+        const menu = picker?.querySelector("[data-edition-picker-menu]");
+        const trigger = picker?.querySelector("[data-edition-picker-trigger]");
+        if (menu && trigger) {
+          menu.hidden = true;
+          trigger.setAttribute("aria-expanded", "false");
+        }
+      };
+
+      const loadEdition = async (form) => {
+        if (loadingEdition) {
+          return;
+        }
+
+        const currentGrid = form.closest(".detail-grid");
+        const trigger = form.querySelector("[data-edition-picker-trigger]");
+        const status = form.querySelector("[data-edition-status]");
+        const url = new URL(form.action, window.location.href);
+        url.searchParams.set("edition", form.querySelector("#edition").value);
+
+        loadingEdition = true;
+        form.setAttribute("aria-busy", "true");
+        status.textContent = "Cargando edición";
+
+        try {
+          const response = await fetch(url, { headers: { "Accept": "text/html" } });
+          if (!response.ok) {
+            throw new Error("No se pudo cargar la edición.");
+          }
+
+          const documentText = await response.text();
+          const nextDocument = new DOMParser().parseFromString(documentText, "text/html");
+          const nextGrid = nextDocument.querySelector(".detail-grid");
+          if (!nextGrid || !currentGrid) {
+            throw new Error("La respuesta no contiene el detalle de la carta.");
+          }
+
+          currentGrid.replaceWith(nextGrid);
+          window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+          activePicker = null;
+          document.querySelector("[data-edition-picker-trigger]")?.focus({ preventScroll: true });
+        } catch (error) {
+          form.removeAttribute("aria-busy");
+          status.textContent = error.message;
+          trigger?.focus({ preventScroll: true });
+        } finally {
+          loadingEdition = false;
+        }
+      };
+
+      document.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-edition-picker-item]");
+        if (item) {
+          const picker = item.closest("[data-edition-picker]");
+          const form = item.closest("[data-edition-form]");
+          const trigger = picker?.querySelector("[data-edition-picker-trigger]");
+          const input = form?.querySelector("#edition");
+          if (input && form) {
+            input.value = item.dataset.editionValue || input.value;
+            closeMenu(picker);
+            trigger?.focus({ preventScroll: true });
+            form.requestSubmit();
+          }
+          return;
+        }
+
+        const trigger = event.target.closest("[data-edition-picker-trigger]");
+        if (trigger) {
+          const picker = trigger.closest("[data-edition-picker]");
+          const menu = picker.querySelector("[data-edition-picker-menu]");
+          menu.hidden = !menu.hidden;
+          trigger.setAttribute("aria-expanded", String(!menu.hidden));
+          activePicker = picker;
+          return;
+        }
+
+        if (activePicker && !activePicker.contains(event.target)) {
+          closeMenu(activePicker);
+          activePicker = null;
+        }
+      });
+
+      document.addEventListener("submit", (event) => {
+        const form = event.target.closest("[data-edition-form]");
+        if (form) {
+          event.preventDefault();
+          loadEdition(form);
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && activePicker) {
+          closeMenu(activePicker);
+          activePicker.querySelector("[data-edition-picker-trigger]")?.focus({ preventScroll: true });
+          activePicker = null;
+        }
+      });
+    })();
+  </script>
+{% endblock %}

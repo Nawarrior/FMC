@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Mantenedor Tiendas{% endblock %}
+{% block banner_title %}Mantenedor de tiendas{% endblock %}
+{% block banner_text %}Administra nombre, pais, pagina web y direccion para cada tienda registrada.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Catalogo</p>
+    <h1>Mantenedor de tiendas</h1>
+    <p class="intro product-intro">
+      Crea y actualiza tiendas para que luego se muestren en la vista publica con su mapa, sitio web y referencias.
+    </p>
+
+    <section class="product-create-card">
+      <div class="product-create-header">
+        <div>
+          <h2>Nueva tienda</h2>
+          <p class="muted">Completa los datos base y quedara disponible en la seccion publica de tiendas.</p>
+        </div>
+      </div>
+
+      <form class="product-form-grid" method="post" action="{{ url_for('create_store') }}">
+        <div>
+          <label for="store-name"><strong>Nombre</strong></label>
+          <input id="store-name" name="name" type="text" placeholder="Nombre de la tienda" required>
+        </div>
+        <div>
+          <label for="store-country"><strong>Pais</strong></label>
+          <select id="store-country" name="country">
+            {% for country in country_options %}
+              <option value="{{ country.code }}" {% if country.code == 'CL' %}selected{% endif %}>{{ country.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="store-website"><strong>Pagina web</strong></label>
+          <input id="store-website" name="website" type="text" placeholder="https://tienda.cl">
+        </div>
+        <div class="product-form-span">
+          <label for="store-address"><strong>Direccion</strong></label>
+          <input id="store-address" name="address" type="text" placeholder="Av. Providencia 1234, Santiago, Chile" required>
+        </div>
+        <div class="product-form-actions">
+          <button class="nav-button save-button" type="submit">Guardar tienda</button>
+        </div>
+      </form>
+    </section>
+
+    {% if stores %}
+      <div class="products-section-head">
+        <h2>Tiendas registradas</h2>
+        <p class="muted">{{ stores|length }} tienda(s)</p>
+      </div>
+
+      <section class="stores-card-grid">
+        {% for store in stores %}
+          <article class="store-card store-card-manage">
+            <div class="store-card-map">
+              {% if store.map_embed_url %}
+                <iframe
+                  src="{{ store.map_embed_url }}"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Mapa de {{ store.name }}"
+                ></iframe>
+              {% else %}
+                <div class="product-image-fallback">Sin mapa</div>
+              {% endif %}
+            </div>
+
+            <form class="store-card-body" method="post" action="{{ url_for('update_store', shop_index=store.index) }}">
+              <div class="product-card-top">
+                <div>
+                  <p class="eyebrow">Tienda</p>
+                  <h3>{{ store.name }}</h3>
+                  <p class="muted">{{ store.references_count }} referencia(s)</p>
+                </div>
+                {% if store.average_rating %}
+                  <p class="product-price-badge">{{ store.average_rating }}/5</p>
+                {% endif %}
+              </div>
+
+              <div class="product-card-fields">
+                <div>
+                  <label for="store-edit-name-{{ loop.index0 }}"><strong>Nombre</strong></label>
+                  <input id="store-edit-name-{{ loop.index0 }}" name="name" type="text" value="{{ store.name }}" required>
+                </div>
+                <div>
+                  <label for="store-edit-country-{{ loop.index0 }}"><strong>Pais</strong></label>
+                  <select id="store-edit-country-{{ loop.index0 }}" name="country">
+                    {% for country in country_options %}
+                      <option value="{{ country.code }}" {% if country.code == store.country %}selected{% endif %}>{{ country.label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="product-card-fields-span">
+                  <label for="store-edit-website-{{ loop.index0 }}"><strong>Pagina web</strong></label>
+                  <input id="store-edit-website-{{ loop.index0 }}" name="website" type="text" value="{{ store.website }}">
+                </div>
+                <div class="product-card-fields-span">
+                  <label for="store-edit-address-{{ loop.index0 }}"><strong>Direccion</strong></label>
+                  <input id="store-edit-address-{{ loop.index0 }}" name="address" type="text" value="{{ store.address }}" required>
+                </div>
+              </div>
+
+              <div class="product-card-actions">
+                <button class="nav-button save-button" type="submit">Actualizar</button>
+                <a class="nav-link" href="{{ store.detail_url }}">Ver detalle</a>
+                <button class="delete-button inline-delete-button" type="submit" formaction="{{ url_for('delete_store', shop_index=store.index) }}">Eliminar</button>
+              </div>
+            </form>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Todavia no hay tiendas registradas.</section>
+    {% endif %}
+  </section>
+{% endblock %}

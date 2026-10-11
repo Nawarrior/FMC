@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Buscador Magic{% endblock %}
+{% block banner_title %}Arcana para cartas, sets y detalles{% endblock %}
+{% block banner_text %}Una portada inspirada en Arcana de HTML5 UP, adaptada al flujo de busqueda y detalle de Scryfall.{% endblock %}
+
+{% block content %}
+  <section class="hero hero-home arcana-hero">
+    <section class="hero-side hero-carousel" data-carousel>
+      <div class="carousel-track">
+        <a class="feature-tile feature-link carousel-slide carousel-slide-offers is-active" href="{{ url_for('community_cards_page', status='ofrezco') }}" aria-label="Cartas ofrecidas" data-carousel-slide>
+          <img
+            class="carousel-slide-image"
+            src="{{ url_for('static', filename='img/Bazar persa del mercader goblin.png') }}"
+            alt=""
+            aria-hidden="true"
+          >
+        </a>
+        <a class="feature-tile feature-link carousel-slide carousel-slide-searches" href="{{ url_for('community_cards_page', status='busco') }}" aria-label="Cartas buscadas" data-carousel-slide>
+          <img
+            class="carousel-slide-image"
+            src="{{ url_for('static', filename='img/Orco vigilante y cofre de cartas.png') }}"
+            alt=""
+            aria-hidden="true"
+          >
+        </a>
+        <a class="feature-tile feature-link carousel-slide carousel-slide-news" href="{{ url_for('news_page') }}" aria-label="Noticias" data-carousel-slide>
+          <img
+            class="carousel-slide-image"
+            src="{{ url_for('static', filename='img/news.png') }}"
+            alt=""
+            aria-hidden="true"
+          >
+        </a>
+        <button class="carousel-nav carousel-nav-prev" type="button" aria-label="Slide anterior" data-carousel-prev>‹</button>
+        <button class="carousel-nav carousel-nav-next" type="button" aria-label="Siguiente slide" data-carousel-next>›</button>
+      </div>
+      <div class="carousel-controls">
+        <button class="carousel-button is-active" type="button" aria-label="Ver cartas ofrecidas" data-carousel-dot></button>
+        <button class="carousel-button" type="button" aria-label="Ver cartas buscadas" data-carousel-dot></button>
+        <button class="carousel-button" type="button" aria-label="Ver noticias" data-carousel-dot></button>
+      </div>
+    </section>
+  </section>
+
+  {% if state.error %}
+    <section class="message error">{{ state.error }}</section>
+  {% elif state.query and state.results is not none %}
+    <section class="results-header">
+      <h2>Resultados para "{{ state.query }}"</h2>
+      <p>{{ state.results|length }} cartas encontradas</p>
+    </section>
+
+    <section class="card-list">
+      {% for card in state.results %}
+        <article class="result-card">
+          <div class="result-main">
+            <h3 class="card-hover-trigger" data-card-image="{{ card.image_url or '' }}">{{ card.name }}</h3>
+            <p>{{ card.type_line or 'Sin tipo disponible' }}</p>
+            <p class="muted">
+              {{ card.set_name or 'Set desconocido' }}
+              {% if card.released_at %}- {{ card.released_at }}{% endif %}
+            </p>
+            {% if card.oracle_text %}
+              <p class="oracle-preview">{{ card.oracle_text[:220] }}{% if card.oracle_text|length > 220 %}...{% endif %}</p>
+            {% endif %}
+          </div>
+          <div class="result-meta">
+            {% if card.mana_cost %}
+              <p class="mana-text"><strong>Costo:</strong> {{ card.mana_cost }}</p>
+            {% endif %}
+            <p><strong>Rareza:</strong> {{ card.rarity or 'N/D' }}</p>
+            {% if card.power and card.toughness %}
+              <p><strong>P/T:</strong> {{ card.power }}/{{ card.toughness }}</p>
+            {% endif %}
+            <a class="detail-link" href="{{ url_for('card_detail', card_id=card.id) }}">Ver detalle</a>
+          </div>
+        </article>
+      {% else %}
+        <article class="message">No se encontraron cartas para esta busqueda.</article>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    (() => {
+      const carousel = document.querySelector("[data-carousel]");
+      if (!carousel) {
+        return;
+      }
+
+      const slides = Array.from(carousel.querySelectorAll("[data-carousel-slide]"));
+      const dots = Array.from(carousel.querySelectorAll("[data-carousel-dot]"));
+      const prevButton = carousel.querySelector("[data-carousel-prev]");
+      const nextButton = carousel.querySelector("[data-carousel-next]");
+      if (slides.length !== dots.length || !slides.length) {
+        return;
+      }
+
+      let activeIndex = 0;
+      let intervalId = null;
+
+      const render = (nextIndex) => {
+        activeIndex = nextIndex;
+        slides.forEach((slide, index) => {
+          slide.classList.toggle("is-active", index === activeIndex);
+        });
+        dots.forEach((dot, index) => {
+          dot.classList.toggle("is-active", index === activeIndex);
+        });
+      };
+
+      dots.forEach((dot, index) => {
+        dot.addEventListener("click", () => render(index));
+      });
+
+      prevButton?.addEventListener("click", () => {
+        render(activeIndex <= 0 ? slides.length - 1 : activeIndex - 1);
+      });
+
+      nextButton?.addEventListener("click", () => {
+        render((activeIndex + 1) % slides.length);
+      });
+
+      const startAutoplay = () => {
+        window.clearInterval(intervalId);
+        intervalId = window.setInterval(() => {
+          render((activeIndex + 1) % slides.length);
+        }, 5000);
+      };
+
+      carousel.addEventListener("mouseenter", () => window.clearInterval(intervalId));
+      carousel.addEventListener("mouseleave", startAutoplay);
+      startAutoplay();
+    })();
+  </script>
+{% endblock %}

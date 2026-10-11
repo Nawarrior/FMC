@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buscador Magic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">Magic Card Search</p>
+      <h1>Busca cartas como si fuera un mini Google de Magic</h1>
+      <p class="intro">
+        Escribe el nombre, color, tipo o una consulta avanzada de Scryfall y presiona Enter.
+      </p>
+
+      <form class="search-form" action="{{ url_for('index') }}" method="get">
+        <label class="sr-only" for="q">Buscar carta</label>
+        <input
+          id="q"
+          name="q"
+          type="search"
+          placeholder='Ejemplo: black lotus o t:dragon c:red'
+          value="{{ state.query }}"
+          autofocus
+        >
+        <button type="submit">Buscar</button>
+      </form>
+    </section>
+
+    {% if state.error %}
+      <section class="message error">{{ state.error }}</section>
+    {% elif state.query and state.results is not none %}
+      <section class="results-header">
+        <h2>Resultados para "{{ state.query }}"</h2>
+        <p>{{ state.results|length }} cartas encontradas</p>
+      </section>
+
+      <section class="card-list">
+        {% for card in state.results %}
+          <article class="result-card">
+            <div class="result-main">
+              <h3>{{ card.name }}</h3>
+              <p>{{ card.type_line or 'Sin tipo disponible' }}</p>
+              <p class="muted">
+                {{ card.set_name or 'Set desconocido' }}
+                {% if card.released_at %}· {{ card.released_at }}{% endif %}
+              </p>
+              {% if card.oracle_text %}
+                <p class="oracle-preview">{{ card.oracle_text[:220] }}{% if card.oracle_text|length > 220 %}...{% endif %}</p>
+              {% endif %}
+            </div>
+            <div class="result-meta">
+              {% if card.mana_cost %}
+                <p><strong>Costo:</strong> {{ card.mana_cost }}</p>
+              {% endif %}
+              <p><strong>Rareza:</strong> {{ card.rarity or 'N/D' }}</p>
+              {% if card.power and card.toughness %}
+                <p><strong>P/T:</strong> {{ card.power }}/{{ card.toughness }}</p>
+              {% endif %}
+              <a class="detail-link" href="{{ url_for('card_detail', card_id=card.id) }}">Ver detalle</a>
+            </div>
+          </article>
+        {% else %}
+          <article class="message">No se encontraron cartas para esta búsqueda.</article>
+        {% endfor %}
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ store.name }}{% endblock %}
+{% block banner_title %}Detalle de tienda{% endblock %}
+{% block banner_text %}Revisa ubicacion, enlaces y referencias de esta tienda antes de concretar una compra.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel user-profile-panel">
+    <div class="user-profile-hero">
+      <div>
+        <p class="eyebrow">Tiendas</p>
+        <h1>{{ store.name }}</h1>
+      </div>
+      <div class="user-profile-badges">
+        <div class="user-profile-badge">
+          {% if store.country_meta.flag %}
+            <img src="{{ store.country_meta.flag }}" alt="Bandera de {{ store.country_meta.label }}">
+          {% endif %}
+          <span>{{ store.country_meta.label }}</span>
+        </div>
+        {% if store.average_rating %}
+          <div class="user-profile-badge">
+            <span>{{ store.average_rating }}/5</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <section class="user-profile-layout">
+      <article class="saved-card">
+        <h2>Informacion de la tienda</h2>
+        <div class="store-detail-stack">
+          <div class="product-description-card">
+            <strong>Direccion</strong>
+            <p>{{ store.address }}</p>
+          </div>
+
+          {% if store.website %}
+            <div class="product-description-card">
+              <strong>Pagina web</strong>
+              <p><a class="saved-link" href="{{ store.website }}" target="_blank" rel="noreferrer">{{ store.website }}</a></p>
+            </div>
+          {% endif %}
+
+          {% if store.map_embed_url %}
+            <div class="store-detail-map">
+              <iframe
+                src="{{ store.map_embed_url }}"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Mapa de {{ store.name }}"
+              ></iframe>
+            </div>
+          {% endif %}
+
+          {% if store.map_link %}
+            <a class="nav-button save-button" href="{{ store.map_link }}" target="_blank" rel="noreferrer">Abrir en Google Maps</a>
+          {% endif %}
+        </div>
+      </article>
+
+      <article class="saved-card">
+        <h2>Referencias</h2>
+        {% if can_leave_reference %}
+          <form class="user-reference-form" method="post" action="{{ url_for('save_store_reference', shop_id=store.shop_id) }}">
+            <div>
+              <label for="store-reference-text"><strong>Comentario</strong></label>
+              <textarea id="store-reference-text" name="reference_text" rows="4" placeholder="Escribe tu referencia sobre esta tienda"></textarea>
+            </div>
+            <div class="user-reference-rating">
+              <label for="store-rating"><strong>Calificacion</strong></label>
+              <select id="store-rating" name="rating">
+                {% for value in range(1, 6) %}
+                  <option value="{{ value }}">{{ "★" * value }}{{ "☆" * (5 - value) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button class="nav-button save-button" type="submit">Guardar referencia</button>
+          </form>
+        {% else %}
+          <p class="muted">Inicia sesion para dejar una referencia.</p>
+        {% endif %}
+
+        {% if store.references %}
+          <div class="user-reference-list">
+            {% for item in store.references %}
+              <article class="user-reference-card">
+                <div class="user-reference-head">
+                  {% if item.author_profile_url %}
+                    <a class="saved-link" href="{{ item.author_profile_url }}">{{ item.author_name }}</a>
+                  {% else %}
+                    <strong>{{ item.author_name }}</strong>
+                  {% endif %}
+                  <span class="user-reference-stars">{{ item.stars }}</span>
+                </div>
+                <p>{{ item.text }}</p>
+                <p class="muted">{{ item.created_at }}</p>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Todavia no hay referencias para esta tienda.</p>
+        {% endif %}
+      </article>
+    </section>
+  </section>
+{% endblock %}

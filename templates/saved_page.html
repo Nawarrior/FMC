@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Mi listado{% endblock %}
+{% block banner_title %}Tus cartas guardadas{% endblock %}
+{% block banner_text %}Revisa las cartas que buscas u ofreces, junto con su edición y cantidad registrada.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <h1>Mi listado</h1>
+
+    {% if saved_cards %}
+      <section class="saved-grid">
+        {% for item in saved_cards %}
+          <article class="saved-card">
+            <p class="eyebrow">{{ item.intent|upper }} · {{ item.edition_code }}</p>
+            <h2>{{ item.name }}</h2>
+            <p><strong>Edicion:</strong> {{ item.edition }}</p>
+            <p><strong>Cantidad:</strong> {{ item.quantity }}</p>
+            <p><strong>ID:</strong> {{ item.card_id }}</p>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Aun no has guardado cartas en tu listado.</section>
+    {% endif %}
+  </section>
+{% endblock %}

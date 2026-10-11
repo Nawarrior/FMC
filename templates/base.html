@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Buscador Magic{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/keyrune@latest/css/keyrune.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mana-font@latest/css/mana.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell">
+      <div class="brand-row">
+        <a class="brand-pill brand-logo-link" href="{{ url_for('index') }}" aria-label="Findmycard inicio">
+          <img class="brand-logo" src="{{ url_for('static', filename='findmycard-logo.png') }}" alt="Logo de Findmycard">
+        </a>
+        <div class="top-actions">
+          <a class="nav-link" href="{{ url_for('index') }}">Inicio</a>
+          <a class="nav-link" href="{{ url_for('saved_cards_page') }}">Mi listado</a>
+          <a class="nav-link" href="{{ url_for('products_catalog_page') }}">Productos</a>
+          <a class="nav-link" href="{{ url_for('stores_catalog_page') }}">Tiendas</a>
+          <a class="nav-link" href="{{ url_for('search_history_page') }}">Busquedas</a>
+          {% if current_user %}
+            {% if cart_count %}
+              <a class="nav-link" href="{{ url_for('cart_page') }}">Carrito ({{ cart_count }})</a>
+            {% endif %}
+            <a class="nav-link" href="{{ url_for('messages_page') }}">Mensajes{% if unread_message_count %} ({{ unread_message_count }}){% endif %}</a>
+          {% endif %}
+          {% if is_admin_user %}
+            <a class="nav-link" href="{{ url_for('products_page') }}">Mantenedor Productos</a>
+            <a class="nav-link" href="{{ url_for('stores_page') }}">Mantenedor Tiendas</a>
+            <a class="nav-link" href="{{ url_for('users_page') }}">Usuarios</a>
+          {% endif %}
+          {% if current_user %}
+            <a class="nav-link" href="{{ url_for('register_page') }}">Mi cuenta</a>
+          {% else %}
+            <a class="nav-link" href="{{ url_for('register_page') }}">Registro / Login</a>
+          {% endif %}
+          {% if current_user %}
+            <a class="user-pill" href="{{ url_for('user_profile_page', user_id=current_user.user_id) }}">{{ current_user.name }} · {{ current_user.role|default('usuario')|capitalize }}</a>
+            {% if unread_message_count %}
+              <a class="user-notification-pill" href="{{ url_for('messages_page') }}">{{ unread_message_count }}</a>
+            {% endif %}
+            <form method="post" action="{{ url_for('logout') }}">
+              <button class="nav-button" type="submit">Salir</button>
+            </form>
+          {% elif google_auth_ready %}
+            <a class="nav-button" href="{{ url_for('auth_google') }}">Entrar con Google</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <section class="global-search arcana-banner">
+      <div class="global-search-copy">
+        <div>
+          <p class="eyebrow">Magic Card Search</p>
+          <h2 class="banner-title">{% block banner_title %}Busca cualquier carta de Magic{% endblock %}</h2>
+          <p class="global-search-text">{% block banner_text %}Busca cualquier carta desde cualquier pantalla.{% endblock %}</p>
+        </div>
+      </div>
+
+      <form class="search-form compact-search" action="{{ url_for('index') }}" method="get">
+        <label class="sr-only" for="q">Buscar carta</label>
+        <div class="autocomplete-wrap">
+          <input
+            id="q"
+            name="q"
+            type="search"
+            placeholder='Ejemplo: black lotus o t:dragon c:red'
+            value="{{ search_query }}"
+            autocomplete="off"
+            spellcheck="false"
+            aria-autocomplete="list"
+            aria-controls="autocomplete-list"
+            aria-expanded="false"
+          >
+          <div id="autocomplete-status" class="autocomplete-status" aria-live="polite"></div>
+          <ul id="autocomplete-list" class="autocomplete-list" hidden></ul>
+        </div>
+        <button type="submit">Buscar</button>
+      </form>
+    </section>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-stack">
+          {% for category, message in messages %}
+            <div class="message {% if category == 'error' %}error{% endif %}">{{ message }}</div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    </div>
+  </header>
+
+  <main class="shell page-shell">
+    {% block content %}{% endblock %}
+  </main>
+
+  <div id="card-hover-preview" class="card-hover-preview" hidden>
+    <img id="card-hover-image" alt="Vista previa de carta">
+  </div>
+
+  <script>
+    (() => {
+      const escapeHtml = (value) => value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+
+      const manaClass = (symbol) => symbol
+        .trim()
+        .toLowerCase()
+        .replaceAll("/", "")
+        .replaceAll("∞", "infinity");
+
+      const renderMana = (text) => escapeHtml(text).replace(/\{(.*?)\}/g, (_, symbol) => {
+        return `<i class="ms ms-${manaClass(symbol)}" aria-hidden="true"></i>`;
+      });
+
+      document.querySelectorAll(".mana-text").forEach((element) => {
+        element.innerHTML = renderMana(element.textContent || "");
+      });
+    })();
+
+    (() => {
+      const input = document.getElementById("q");
+      const list = document.getElementById("autocomplete-list");
+      const status = document.getElementById("autocomplete-status");
+      const form = input?.closest("form");
+      const minimumLength = 3;
+      let activeIndex = -1;
+      let items = [];
+      let debounceId = null;
+      let controller = null;
+
+      if (!input || !list || !status || !form) {
+        return;
+      }
+
+      const closeList = () => {
+        list.hidden = true;
+        list.innerHTML = "";
+        input.setAttribute("aria-expanded", "false");
+        activeIndex = -1;
+        items = [];
+      };
+
+      const updateActiveItem = () => {
+        const buttons = Array.from(list.querySelectorAll("button"));
+        buttons.forEach((button, index) => {
+          const isActive = index === activeIndex;
+          button.classList.toggle("is-active", isActive);
+          if (isActive) {
+            button.scrollIntoView({ block: "nearest" });
+          }
+        });
+      };
+
+      const chooseItem = (value, submitSearch = false) => {
+        input.value = value;
+        closeList();
+        if (submitSearch) {
+          form.requestSubmit();
+        }
+      };
+
+      const renderItems = (nextItems) => {
+        items = nextItems;
+        activeIndex = -1;
+
+        if (!items.length) {
+          closeList();
+          status.textContent = "Sin sugerencias";
+          return;
+        }
+
+        list.innerHTML = "";
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = item;
+          button.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+            chooseItem(item, true);
+          });
+          li.appendChild(button);
+          list.appendChild(li);
+        });
+
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        status.textContent = `${items.length} sugerencias`;
+      };
+
+      const fetchSuggestions = async (query) => {
+        if (controller) {
+          controller.abort();
+        }
+
+        controller = new AbortController();
+        status.textContent = "Buscando sugerencias...";
+
+        try {
+          const response = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal,
+            headers: { "Accept": "application/json" }
+          });
+
+          if (!response.ok) {
+            throw new Error("No se pudieron obtener sugerencias.");
+          }
+
+          const payload = await response.json();
+          if (input.value.trim() !== query) {
+            return;
+          }
+
+          renderItems(payload.items || []);
+        } catch (error) {
+          if (error.name === "AbortError") {
+            return;
+          }
+
+          closeList();
+          status.textContent = "Error al conectar con Scryfall";
+        }
+      };
+
+      input.addEventListener("input", () => {
+        const value = input.value.trim();
+
+        window.clearTimeout(debounceId);
+
+        if (value.length < minimumLength) {
+          status.textContent = value.length ? "Escribe al menos 3 caracteres" : "";
+          closeList();
+          return;
+        }
+
+        debounceId = window.setTimeout(() => fetchSuggestions(value), 220);
+      });
+
+      input.addEventListener("keydown", (event) => {
+        if (list.hidden || !items.length) {
+          return;
+        }
+
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          activeIndex = (activeIndex + 1) % items.length;
+          updateActiveItem();
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+          updateActiveItem();
+        } else if (event.key === "Enter" && activeIndex >= 0) {
+          event.preventDefault();
+          chooseItem(items[activeIndex], true);
+        } else if (event.key === "Escape") {
+          closeList();
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".autocomplete-wrap")) {
+          closeList();
+        }
+      });
+    })();
+
+    (() => {
+      const preview = document.getElementById("card-hover-preview");
+      const image = document.getElementById("card-hover-image");
+      const triggers = Array.from(document.querySelectorAll(".card-hover-trigger[data-card-image]"));
+
+      if (!preview || !image || !triggers.length) {
+        return;
+      }
+
+      const hidePreview = () => {
+        preview.hidden = true;
+      };
+
+      const movePreview = (event) => {
+        const offset = 22;
+        preview.style.left = `${event.clientX + offset}px`;
+        preview.style.top = `${event.clientY + offset}px`;
+      };
+
+      triggers.forEach((trigger) => {
+        const imageUrl = trigger.getAttribute("data-card-image");
+        if (!imageUrl) {
+          return;
+        }
+
+        trigger.addEventListener("mouseenter", (event) => {
+          image.src = imageUrl;
+          preview.hidden = false;
+          movePreview(event);
+        });
+
+        trigger.addEventListener("mousemove", movePreview);
+        trigger.addEventListener("mouseleave", hidePreview);
+      });
+
+      window.addEventListener("scroll", hidePreview, { passive: true });
+    })();
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

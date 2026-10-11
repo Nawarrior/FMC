@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Tiendas{% endblock %}
+{% block banner_title %}Tiendas recomendadas por la comunidad{% endblock %}
+{% block banner_text %}Explora tiendas, revisa su ubicacion en Google Maps y consulta referencias antes de comprar.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Tiendas</p>
+    <h1>Tiendas</h1>
+    <p class="intro product-intro">
+      Vista publica de tiendas. Aqui puedes revisar pais, web, direccion y la reputacion que otros usuarios les han dejado.
+    </p>
+
+    {% if stores %}
+      <div class="products-section-head">
+        <h2>Tiendas registradas</h2>
+        <p class="muted">{{ stores|length }} tienda(s)</p>
+      </div>
+
+      <section class="stores-card-grid">
+        {% for store in stores %}
+          <article class="store-card">
+            <div class="store-card-map">
+              {% if store.map_embed_url %}
+                <iframe
+                  src="{{ store.map_embed_url }}"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Mapa de {{ store.name }}"
+                ></iframe>
+              {% else %}
+                <div class="product-image-fallback">Sin mapa</div>
+              {% endif %}
+            </div>
+
+            <div class="store-card-body">
+              <div class="product-card-top">
+                <div>
+                  <p class="eyebrow">Tienda</p>
+                  <h3>{{ store.name }}</h3>
+                  <p class="muted">
+                    {% if store.country_meta.flag %}
+                      <img class="inline-flag" src="{{ store.country_meta.flag }}" alt="Bandera de {{ store.country_meta.label }}">
+                    {% endif %}
+                    {{ store.country_meta.label }}
+                  </p>
+                </div>
+                {% if store.average_rating %}
+                  <p class="product-price-badge">{{ store.average_rating }}/5</p>
+                {% endif %}
+              </div>
+
+              <div class="product-summary-grid">
+                <div>
+                  <strong>Pais</strong>
+                  <span>{{ store.country_meta.label }}</span>
+                </div>
+                <div>
+                  <strong>Referencias</strong>
+                  <span>{{ store.references_count }}</span>
+                </div>
+              </div>
+
+              <div class="product-description-card">
+                <strong>Direccion</strong>
+                <p>{{ store.address }}</p>
+              </div>
+
+              <div class="store-card-links">
+                {% if store.website %}
+                  <a class="nav-link" href="{{ store.website }}" target="_blank" rel="noreferrer">Pagina web</a>
+                {% endif %}
+                {% if store.map_link %}
+                  <a class="nav-link" href="{{ store.map_link }}" target="_blank" rel="noreferrer">Ver en Google Maps</a>
+                {% endif %}
+                <a class="nav-button" href="{{ store.detail_url }}">Ver detalle</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Todavia no hay tiendas registradas.</section>
+    {% endif %}
+  </section>
+{% endblock %}

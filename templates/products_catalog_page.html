@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Productos{% endblock %}
+{% block banner_title %}Catalogo de productos{% endblock %}
+{% block banner_text %}Explora los productos disponibles, elige una cantidad y guardalos en tu carrito.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Catalogo</p>
+    <h1>Productos</h1>
+    <p class="intro product-intro">
+      Vista publica del catalogo. Aqui solo puedes revisar el producto, seleccionar cantidad y guardarlo en el carrito.
+    </p>
+
+    {% if products %}
+      <div class="products-section-head">
+        <h2>Productos disponibles</h2>
+        <p class="muted">{{ products|length }} producto(s)</p>
+      </div>
+
+      <section class="products-card-grid">
+        {% for product in products %}
+          <article class="product-card product-card-readonly">
+            <div class="product-card-media">
+              {% if product.image %}
+                <img src="{{ product.image }}" alt="Imagen de {{ product.name }}" loading="lazy">
+              {% else %}
+                <div class="product-image-fallback">Sin imagen</div>
+              {% endif %}
+            </div>
+
+            <div class="product-card-body">
+              <div class="product-card-top">
+                <div>
+                  <p class="eyebrow">Producto</p>
+                  <h3>{{ product.name }}</h3>
+                  {% if product.category %}
+                    <p class="muted">{{ product.category }}</p>
+                  {% endif %}
+                  {% if product.brand %}
+                    <p class="muted">{{ product.brand }}</p>
+                  {% endif %}
+                </div>
+                <p class="product-price-badge">${{ '%.2f'|format(product.price or 0) }}</p>
+              </div>
+
+              <div class="product-summary-grid">
+                <div>
+                  <strong>Stock</strong>
+                  <span>{{ product.quantity }}</span>
+                </div>
+                <div>
+                  <strong>Categoria</strong>
+                  <span>{{ product.category or 'Sin categoria' }}</span>
+                </div>
+              </div>
+
+              <div class="product-description-card">
+                <strong>Descripcion</strong>
+                <p>{{ product.description or 'Sin descripcion' }}</p>
+              </div>
+
+              <form class="catalog-cart-form" method="post" action="{{ url_for('add_to_cart', product_index=loop.index0) }}">
+                <div>
+                  <label for="catalog-quantity-{{ loop.index0 }}"><strong>Cantidad</strong></label>
+                  <select id="catalog-quantity-{{ loop.index0 }}" name="quantity" {% if (product.quantity or 0) <= 0 %}disabled{% endif %}>
+                    {% for amount in range(1, (product.quantity if product.quantity and product.quantity < 11 else 10) + 1) %}
+                      <option value="{{ amount }}">{{ amount }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="catalog-cart-action">
+                  <button class="nav-button save-button" type="submit" {% if (product.quantity or 0) <= 0 %}disabled{% endif %}>
+                    {% if (product.quantity or 0) <= 0 %}Sin stock{% else %}Guardar{% endif %}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Todavia no hay productos registrados.</section>
+    {% endif %}
+  </section>
+{% endblock %}

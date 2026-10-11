@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Registro y Login{% endblock %}
+{% block banner_title %}Accede a tu cuenta{% endblock %}
+{% block banner_text %}Crea un usuario local o inicia sesion para seguir armando tu listado de cartas desde cualquier pagina.{% endblock %}
+
+{% block content %}
+  <section class="auth-panel">
+    <p class="eyebrow">Cuenta</p>
+    <h1>Registro y acceso</h1>
+    <p class="intro">
+      Puedes registrarte con correo y clave o entrar con Google si ya lo tienes configurado.
+    </p>
+
+    {% if current_user %}
+      <div class="auth-user-card">
+        {% if current_user.picture %}
+          <img src="{{ current_user.picture }}" alt="Avatar de {{ current_user.name }}">
+        {% endif %}
+        <div>
+          <p><strong><a class="saved-link" href="{{ url_for('user_profile_page', user_id=current_user.user_id) }}">{{ current_user.name }}</a></strong></p>
+          {% if current_user.provider %}
+            <p class="muted">Acceso: {{ current_user.provider|capitalize }}</p>
+          {% endif %}
+          {% if current_user.role %}
+            <p class="muted">Perfil: {{ current_user.role|capitalize }}</p>
+          {% endif %}
+          {% if current_user.country %}
+            <p class="muted">Pais: {{ current_user.country }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('logout') }}">
+        <button class="google-button" type="submit">Cerrar sesion</button>
+      </form>
+    {% endif %}
+
+    <section class="auth-grid">
+      <article class="auth-card">
+        <h2>Crear cuenta</h2>
+        <form class="auth-form" method="post" action="{{ url_for('register_local') }}">
+          <div>
+            <label for="register-name">Nombre</label>
+            <input id="register-name" name="name" type="text" placeholder="Tu nombre" required>
+          </div>
+          <div>
+            <label for="register-email">Correo</label>
+            <input id="register-email" name="email" type="email" placeholder="tu@correo.com" required>
+          </div>
+          <div>
+            <label for="register-country">Pais</label>
+            <div class="country-picker" data-default-country="CL">
+              <input id="register-country" name="country" type="hidden" value="CL">
+              <button class="country-picker-trigger" type="button" aria-expanded="false">
+                <span class="country-picker-trigger-content">Cargando paises...</span>
+              </button>
+              <div class="country-picker-menu" hidden>
+                <div class="country-picker-search-wrap">
+                  <input class="country-picker-search" type="search" placeholder="Buscar pais">
+                </div>
+                <ul class="country-picker-list"></ul>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label for="register-password">Clave</label>
+            <input id="register-password" name="password" type="password" placeholder="Minimo 6 caracteres" required>
+          </div>
+          <div>
+            <label for="register-confirm">Repite la clave</label>
+            <input id="register-confirm" name="confirm_password" type="password" placeholder="Confirma tu clave" required>
+          </div>
+          <button class="google-button" type="submit">Registrarme</button>
+        </form>
+      </article>
+
+      <article class="auth-card">
+        <h2>Iniciar sesion</h2>
+        <form class="auth-form" method="post" action="{{ url_for('login_local') }}">
+          <div>
+            <label for="login-email">Correo</label>
+            <input id="login-email" name="email" type="email" placeholder="tu@correo.com" required>
+          </div>
+          <div>
+            <label for="login-password">Clave</label>
+            <input id="login-password" name="password" type="password" placeholder="Tu clave" required>
+          </div>
+          <button class="google-button" type="submit">Entrar</button>
+        </form>
+
+        <div class="auth-divider">o</div>
+
+        {% if google_auth_ready %}
+          <a class="google-button auth-google-link" href="{{ url_for('auth_google') }}">Continuar con Google</a>
+        {% else %}
+          <section class="message error">
+            Falta configurar <code>GOOGLE_CLIENT_ID</code> y <code>GOOGLE_CLIENT_SECRET</code>.
+          </section>
+        {% endif %}
+      </article>
+    </section>
+
+    <section class="auth-help">
+      <h2>Configuracion de Google</h2>
+      <p>Si quieres usar acceso con Google, define estas variables:</p>
+      <pre><code>set GOOGLE_CLIENT_ID=tu_client_id
+set GOOGLE_CLIENT_SECRET=tu_client_secret
+set FLASK_SECRET_KEY=una_clave_segura</code></pre>
+      <p class="muted">
+        Redirect URI de Google Cloud: <code>{{ url_for('auth_google_callback', _external=True) }}</code>
+      </p>
+    </section>
+  </section>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    (() => {
+      const picker = document.querySelector(".country-picker");
+      if (!picker) {
+        return;
+      }
+
+      const hiddenInput = picker.querySelector("input[name='country']");
+      const trigger = picker.querySelector(".country-picker-trigger");
+      const triggerContent = picker.querySelector(".country-picker-trigger-content");
+      const menu = picker.querySelector(".country-picker-menu");
+      const list = picker.querySelector(".country-picker-list");
+      const searchInput = picker.querySelector(".country-picker-search");
+      const defaultCode = picker.dataset.defaultCountry || "CL";
+      let items = [];
+
+      const closeMenu = () => {
+        menu.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+      };
+
+      const openMenu = () => {
+        menu.hidden = false;
+        trigger.setAttribute("aria-expanded", "true");
+        searchInput.focus();
+      };
+
+      const renderTrigger = (item) => {
+        if (!item) {
+          triggerContent.textContent = "Selecciona un pais";
+          return;
+        }
+
+        triggerContent.innerHTML = "";
+        const wrapper = document.createElement("span");
+        wrapper.className = "country-picker-option";
+
+        if (item.flag) {
+          const image = document.createElement("img");
+          image.src = item.flag;
+          image.alt = `Bandera de ${item.label}`;
+          wrapper.appendChild(image);
+        }
+
+        const text = document.createElement("span");
+        text.textContent = item.label;
+        wrapper.appendChild(text);
+        triggerContent.appendChild(wrapper);
+      };
+
+      const chooseItem = (item) => {
+        hiddenInput.value = item.code;
+        renderTrigger(item);
+        closeMenu();
+      };
+
+      const renderList = (query = "") => {
+        const normalizedQuery = query.trim().toLowerCase();
+        const filteredItems = items.filter((item) => item.label.toLowerCase().includes(normalizedQuery));
+
+        list.innerHTML = "";
+        filteredItems.forEach((item) => {
+          const li = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "country-picker-item";
+          button.dataset.code = item.code;
+
+          if (item.flag) {
+            const image = document.createElement("img");
+            image.src = item.flag;
+            image.alt = `Bandera de ${item.label}`;
+            button.appendChild(image);
+          }
+
+          const text = document.createElement("span");
+          text.textContent = item.label;
+          button.appendChild(text);
+
+          button.addEventListener("click", () => chooseItem(item));
+          li.appendChild(button);
+          list.appendChild(li);
+        });
+      };
+
+      trigger.addEventListener("click", () => {
+        if (menu.hidden) {
+          openMenu();
+        } else {
+          closeMenu();
+        }
+      });
+
+      searchInput.addEventListener("input", () => renderList(searchInput.value));
+
+      document.addEventListener("click", (event) => {
+        if (!picker.contains(event.target)) {
+          closeMenu();
+        }
+      });
+
+      fetch("/api/countries", { headers: { "Accept": "application/json" } })
+        .then((response) => response.json())
+        .then((payload) => {
+          items = payload.items || [];
+          renderList();
+          const defaultItem = items.find((item) => item.code === hiddenInput.value) || items.find((item) => item.code === defaultCode) || items[0];
+          if (defaultItem) {
+            chooseItem(defaultItem);
+          }
+        })
+        .catch(() => {
+          triggerContent.textContent = "Chile";
+        });
+    })();
+  </script>
+{% endblock %}

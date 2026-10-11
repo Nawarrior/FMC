@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard de Búsquedas{% endblock %}
+{% block banner_title %}Ranking de cartas más buscadas{% endblock %}
+{% block banner_text %}Filtra por rango de fecha, color y legalidad para ver qué cartas se buscan con más frecuencia.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <div class="page-actions">
+      <a class="nav-link" href="{{ url_for('search_history_page') }}">Volver al historial</a>
+    </div>
+
+    <p class="eyebrow">Dashboard</p>
+    <h1>Ranking de búsquedas</h1>
+    <p class="intro">
+      Usa estos filtros para ver los términos más buscados, su frecuencia y sus datos de carta asociados.
+    </p>
+
+    <form class="filter-form" method="get" action="{{ url_for('search_history_dashboard_page') }}">
+      <div class="field-grid">
+        <label>
+          Fecha desde
+          <input type="date" name="start_date" value="{{ start_date }}">
+        </label>
+        <label>
+          Fecha hasta
+          <input type="date" name="end_date" value="{{ end_date }}">
+        </label>
+        <label>
+          Color
+          <select name="color">
+            <option value="">Todos</option>
+            {% for option in color_options %}
+              <option value="{{ option.code }}" {% if option.code == color_filter %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Legalidad
+          <select name="legality">
+            <option value="">Todas</option>
+            {% for option in legality_options %}
+              <option value="{{ option.code }}" {% if option.code == legality_filter %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <button type="submit">Aplicar filtros</button>
+    </form>
+
+    {% if dashboard_items %}
+      {% set max_count = dashboard_items[0].count if dashboard_items else 1 %}
+      <style>
+        .dashboard-chart {
+          display: grid;
+          gap: 1rem;
+          margin-top: 1.5rem;
+        }
+        .dashboard-plot {
+          display: grid;
+          gap: 1rem;
+          padding: 1.4rem;
+          background: linear-gradient(180deg, #f7f9ff 0%, #ffffff 100%);
+          border: 1px solid rgba(96, 110, 234, 0.15);
+          border-radius: 26px;
+          box-shadow: 0 24px 50px rgba(33, 62, 125, 0.08);
+        }
+        .dashboard-plot-label {
+          font-size: 1rem;
+          color: #3b4a67;
+          font-weight: 600;
+        }
+        .dashboard-plot-subtitle {
+          color: #6880a5;
+          font-size: 0.95rem;
+          margin-top: -0.25rem;
+        }
+        .dashboard-plot {
+          position: relative;
+        }
+        .dashboard-plot-grid {
+          display: grid;
+          grid-template-columns: auto 1fr 320px;
+          gap: 1rem;
+          align-items: start;
+          position: relative;
+        }
+        .dashboard-y-axis {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          align-items: flex-end;
+          height: 360px;
+          font-size: 0.82rem;
+          color: #7f8aa3;
+          padding-right: 0.5rem;
+          line-height: 1.8;
+        }
+        .dashboard-y-axis span {
+          position: relative;
+          right: -8px;
+        }
+        .dashboard-bars {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: minmax(20px, 34px);
+          gap: 0.35rem;
+          align-items: end;
+          min-height: 360px;
+          padding: 1rem 0 0.5rem;
+          position: relative;
+          overflow-x: auto;
+          scrollbar-width: thin;
+        }
+        .dashboard-bars::-webkit-scrollbar {
+          height: 8px;
+        }
+        .dashboard-bars::-webkit-scrollbar-thumb {
+          background: rgba(82, 92, 228, 0.28);
+          border-radius: 999px;
+        }
+        .dashboard-bars::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 35px 0;
+          background-image: linear-gradient(to top, rgba(58, 95, 235, 0.08) 1px, transparent 1px);
+          background-size: 100% 60px;
+          pointer-events: none;
+        }
+        .dashboard-bar {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 0.2rem;
+          padding: 0 0.05rem;
+          position: relative;
+          z-index: 1;
+          min-width: 20px;
+          max-width: 34px;
+        }
+        .dashboard-bar-track {
+          width: 100%;
+          height: 320px;
+          display: flex;
+          align-items: flex-end;
+          position: relative;
+          background: rgba(255,255,255,0.04);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+        }
+        .dashboard-bar-fill {
+          width: 100%;
+          background: linear-gradient(180deg, #4f74ff 0%, #2f61ff 100%);
+          border-radius: 16px 16px 4px 4px;
+          box-shadow: 0 16px 28px rgba(47, 81, 248, 0.18);
+          transition: transform 0.25s ease, height 0.25s ease;
+          display: grid;
+          place-items: end center;
+          color: #ffffff;
+          font-weight: 700;
+        }
+        .dashboard-bar-value {
+          font-size: 0.78rem;
+          line-height: 1;
+          padding-bottom: 0.25rem;
+        }
+        .dashboard-bar:hover .dashboard-bar-fill {
+          transform: scale(1.05);
+          box-shadow: 0 24px 36px rgba(47, 81, 248, 0.22);
+        }
+        .dashboard-details {
+          background: rgba(255, 255, 255, 0.92);
+          border-radius: 24px;
+          box-shadow: 0 18px 40px rgba(33, 62, 125, 0.08);
+          padding: 1rem;
+          min-height: 360px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        .dashboard-details h2 {
+          margin: 0 0 1rem;
+          font-size: 1rem;
+          color: #2b3a59;
+        }
+        .dashboard-details table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.95rem;
+          color: #2b3a59;
+        }
+        .dashboard-details th,
+        .dashboard-details td {
+          padding: 0.7rem 0.6rem;
+          text-align: left;
+        }
+        .dashboard-details th {
+          font-weight: 700;
+          color: #4257ff;
+          border-bottom: 1px solid rgba(66, 87, 255, 0.15);
+        }
+        .dashboard-details tbody tr:not(:last-child) td {
+          border-bottom: 1px solid rgba(66, 87, 255, 0.08);
+        }
+        .dashboard-card-preview {
+          display: none;
+          width: 120px;
+          height: 170px;
+          border-radius: 18px;
+          overflow: hidden;
+          background: #08112d;
+          border: 1px solid rgba(255,255,255,0.12);
+          box-shadow: 0 12px 24px rgba(15, 31, 56, 0.18);
+          position: absolute;
+          top: 1.5rem;
+          right: 1rem;
+          z-index: 10;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.18s ease;
+        }
+        .dashboard-card-preview.active {
+          display: block;
+          opacity: 1;
+        }
+        .dashboard-card-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .dashboard-bar {
+          cursor: pointer;
+        }
+      </style>
+
+      <section class="dashboard-plot">
+        <div>
+          <div class="dashboard-plot-label">Top 10 cartas buscadas</div>
+          <div class="dashboard-plot-subtitle">Eje X: carta · Eje Y: cantidad de búsquedas</div>
+        </div>
+        <div class="dashboard-plot-grid">
+          <div class="dashboard-y-axis">
+            <span>{{ max_count }}</span>
+            <span>{{ (max_count * 2 // 3) | round(0) }}</span>
+            <span>{{ (max_count // 3) | round(0) }}</span>
+            <span>0</span>
+          </div>
+          <div class="dashboard-bars">
+            {% for item in dashboard_items %}
+              <div class="dashboard-bar dashboard-card-hover-trigger" data-card-image="{{ item.image_url or '' }}">
+                <div class="dashboard-bar-track">
+                  <div class="dashboard-bar-fill" style="height: {{ ((item.count / max_count) * 100) | round(0) }}%">
+                    <span class="dashboard-bar-value">{{ item.count }}</span>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="dashboard-details">
+            <h2>Detalle</h2>
+            <table>
+              <thead>
+                <tr><th>Carta</th><th>Búsquedas</th></tr>
+              </thead>
+              <tbody>
+                {% for item in dashboard_items %}
+                  <tr>
+                    <td>{{ item.card_name }}</td>
+                    <td>{{ item.count }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="dashboard-card-preview" id="dashboard-card-preview">
+          <img id="dashboard-card-preview-image" src="" alt="Carta" />
+        </div>
+      </section>
+    {% else %}
+      <section class="message">No se encontraron resultados con esos filtros.</section>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (() => {
+    const preview = document.getElementById("dashboard-card-preview");
+    const previewImage = document.getElementById("dashboard-card-preview-image");
+    const bars = Array.from(document.querySelectorAll(".dashboard-card-hover-trigger[data-card-image]"));
+    if (!preview || !previewImage || !bars.length) {
+      return;
+    }
+
+    const previewWidth = 120;
+    const previewHeight = 170;
+    const margin = 12;
+
+    const movePreview = (bar) => {
+      const barRect = bar.getBoundingClientRect();
+      const containerRect = bar.closest('.dashboard-plot').getBoundingClientRect();
+      const left = Math.min(
+        Math.max(barRect.left - containerRect.left + barRect.width / 2 - previewWidth / 2, margin),
+        containerRect.width - previewWidth - margin
+      );
+      const topCandidate = barRect.top - containerRect.top - previewHeight - margin;
+      const top = topCandidate >= margin
+        ? topCandidate
+        : Math.min(barRect.bottom - containerRect.top + margin, containerRect.height - previewHeight - margin);
+
+      preview.style.left = `${left}px`;
+      preview.style.top = `${top}px`;
+    };
+
+    bars.forEach((bar) => {
+      const imageUrl = bar.dataset.cardImage;
+      if (!imageUrl) {
+        return;
+      }
+
+      bar.addEventListener("mouseenter", () => {
+        previewImage.src = imageUrl;
+        preview.classList.add("active");
+        movePreview(bar);
+      });
+
+      bar.addEventListener("mousemove", () => movePreview(bar));
+      bar.addEventListener("mouseleave", () => {
+        preview.classList.remove("active");
+      });
+    });
+  })();
+</script>
+{% endblock %}

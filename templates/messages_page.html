@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Mensajes{% endblock %}
+{% block banner_title %}Mensajes entre usuarios{% endblock %}
+{% block banner_text %}Revisa tus conversaciones y responde desde un solo lugar.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Inbox</p>
+    <h1>Mensajes</h1>
+
+    {% if threads %}
+      <section class="messages-thread-list">
+        {% for thread in threads %}
+          <article class="saved-card message-thread-card">
+            <div class="message-thread-head">
+              <div>
+                <h2><a class="saved-link" href="{{ thread.other_profile_url }}">{{ thread.other_user_name }}</a></h2>
+                <p class="muted">Ultimo mensaje: {{ thread.last_message_at }}</p>
+              </div>
+            </div>
+
+            <div class="message-bubble-list">
+              {% for item in thread.messages %}
+                <article class="message-bubble {% if item.sender_user_id == current_user.user_id %}is-own{% endif %}">
+                  {% if item.card_name %}
+                    <p class="muted">Carta: {{ item.card_name }}</p>
+                  {% endif %}
+                  <p>{{ item.text }}</p>
+                  <p class="muted">{{ item.sender_name }} · {{ item.created_at }}</p>
+                </article>
+              {% endfor %}
+            </div>
+
+            <form class="message-reply-form" method="post" action="{{ url_for('reply_message') }}">
+              <input type="hidden" name="receiver_user_id" value="{{ thread.other_user_id }}">
+              <textarea name="message_text" rows="3" placeholder="Escribe tu respuesta"></textarea>
+              <button class="nav-button save-button" type="submit">Responder</button>
+            </form>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Todavia no tienes mensajes.</section>
+    {% endif %}
+  </section>
+{% endblock %}

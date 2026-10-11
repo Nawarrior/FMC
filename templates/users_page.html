@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Mantenedor de Usuarios{% endblock %}
+{% block banner_title %}Administra perfiles{% endblock %}
+{% block banner_text %}Solo el perfil adm puede cambiar el tipo de acceso entre adm, moderador, usuario y tienda.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Usuarios</p>
+    <h1>Mantenedor de usuarios</h1>
+    <p class="intro">
+      Los usuarios nuevos se crean como <strong>usuario</strong>. Desde aqui puedes cambiar su perfil cuando haga falta.
+    </p>
+
+    <section class="users-grid">
+      {% for user in users %}
+        <article class="saved-card user-card">
+          <p class="eyebrow">{{ user.provider|default('local')|capitalize }}</p>
+          <h3><a class="saved-link" href="{{ url_for('user_profile_page', user_id=user.user_id) }}">{{ user.name or 'Sin nombre' }}</a></h3>
+          {% if user.country %}
+            <p class="muted">Pais: {{ user.country }}</p>
+          {% endif %}
+
+          <form class="saved-edit-form" method="post" action="{{ url_for('update_user_profile', user_index=loop.index0) }}">
+            <div class="saved-edit-grid">
+              <div>
+                <label for="role-{{ loop.index0 }}">Perfil</label>
+                <select id="role-{{ loop.index0 }}" name="role">
+                  {% for role in role_options %}
+                    <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role|capitalize }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="saved-actions">
+              <button class="detail-link save-button" type="submit">Actualizar perfil</button>
+            </div>
+          </form>
+        </article>
+      {% else %}
+        <section class="message">
+          Todavia no hay usuarios registrados.
+        </section>
+      {% endfor %}
+    </section>
+  </section>
+{% endblock %}

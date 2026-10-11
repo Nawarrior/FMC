@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Cartas de la comunidad{% endblock %}
+{% block banner_title %}Cartas compartidas por la comunidad{% endblock %}
+{% block banner_text %}Explora en modo lectura las cartas que otros usuarios ofrecen o buscan.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Comunidad</p>
+    <h1>{% if name_filter %}{{ name_filter }}{% else %}Cartas de usuarios{% endif %}</h1>
+
+    <form class="saved-filters" method="get" action="{{ url_for('community_cards_page') }}">
+      <input type="hidden" name="name" value="{{ name_filter or '' }}">
+      <div>
+        <label for="status-filter"><strong>Estado</strong></label>
+        <select id="status-filter" name="status">
+          <option value="">Todos</option>
+          <option value="busco" {% if status_filter == 'busco' %}selected{% endif %}>Busco</option>
+          <option value="ofrezco" {% if status_filter == 'ofrezco' %}selected{% endif %}>Ofrezco</option>
+        </select>
+      </div>
+      <div>
+        <label for="rarity-filter"><strong>Rareza</strong></label>
+        <select id="rarity-filter" name="rarity">
+          <option value="">Todas</option>
+          {% for rarity in available_rarities %}
+            <option value="{{ rarity }}" {% if rarity_filter == rarity %}selected{% endif %}>{{ rarity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="saved-filter-actions">
+        <button class="nav-button save-button" type="submit">Filtrar</button>
+      </div>
+    </form>
+
+    {% if saved_cards %}
+      <section class="community-grid-table">
+        <div class="community-grid-head">Carta</div>
+        <div class="community-grid-head">Edicion</div>
+        <div class="community-grid-head">Estado</div>
+        <div class="community-grid-head">Cantidad</div>
+        <div class="community-grid-head">Usuario</div>
+        <div class="community-grid-head">Nota</div>
+
+        {% for item in saved_cards %}
+          <div class="community-grid-row">
+            <div class="community-grid-cell">
+              <a
+                class="saved-link card-hover-trigger"
+                href="{{ url_for('card_detail', card_id=item.card_id) }}"
+                data-card-image="{{ item.image_url or '' }}"
+              >{{ item.name }}</a>
+              <p class="muted">{{ item.rarity or 'sin rareza' }} · {{ item.edition_code }}</p>
+            </div>
+            <div class="community-grid-cell">
+              <span>{{ item.edition }}</span>
+            </div>
+            <div class="community-grid-cell">
+              <span>{{ item.intent|capitalize }}</span>
+            </div>
+            <div class="community-grid-cell">
+              <span>{{ item.quantity }}</span>
+            </div>
+            <div class="community-grid-cell">
+              {% if item.user_name %}
+                <a class="saved-link" href="{{ item.user_profile_url }}">{{ item.user_name }}</a>
+              {% else %}
+                <span>-</span>
+              {% endif %}
+            </div>
+            <div class="community-grid-cell">
+              <span>{{ item.note or '-' }}</span>
+              {% if current_user and current_user.user_id != item.user_id %}
+                <button
+                  class="nav-button community-contact-button"
+                  type="button"
+                  data-contact-open
+                  data-receiver-id="{{ item.user_id }}"
+                  data-receiver-name="{{ item.user_name }}"
+                  data-card-id="{{ item.card_id }}"
+                  data-card-name="{{ item.name }}"
+                >Contactar</button>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">No hay cartas publicadas para este filtro.</section>
+    {% endif %}
+  </section>
+
+  {% if current_user %}
+    <div class="contact-modal" id="contact-modal" hidden>
+      <div class="contact-modal-backdrop" data-contact-close></div>
+      <div class="contact-modal-panel">
+        <div class="contact-modal-head">
+          <h2>Contactar usuario</h2>
+          <button class="contact-modal-close" type="button" data-contact-close>×</button>
+        </div>
+        <form class="contact-form" method="post" action="{{ url_for('send_message') }}">
+          <input type="hidden" name="receiver_user_id" id="contact-receiver-id">
+          <input type="hidden" name="card_id" id="contact-card-id">
+          <input type="hidden" name="card_name" id="contact-card-name">
+          <input type="hidden" name="return_status" value="{{ status_filter }}">
+          <input type="hidden" name="return_rarity" value="{{ rarity_filter }}">
+          <p class="muted" id="contact-modal-copy"></p>
+          <textarea name="message_text" id="contact-message-text" rows="5" placeholder="Escribe tu mensaje"></textarea>
+          <button class="nav-button save-button" type="submit">Guardar</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  {% if current_user %}
+    <script>
+      (() => {
+        const modal = document.getElementById("contact-modal");
+        if (!modal) {
+          return;
+        }
+
+        const receiverInput = document.getElementById("contact-receiver-id");
+        const cardIdInput = document.getElementById("contact-card-id");
+        const cardNameInput = document.getElementById("contact-card-name");
+        const copy = document.getElementById("contact-modal-copy");
+        const textarea = document.getElementById("contact-message-text");
+        const openButtons = Array.from(document.querySelectorAll("[data-contact-open]"));
+        const closeButtons = Array.from(document.querySelectorAll("[data-contact-close]"));
+
+        const closeModal = () => {
+          modal.hidden = true;
+        };
+
+        openButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            receiverInput.value = button.dataset.receiverId || "";
+            cardIdInput.value = button.dataset.cardId || "";
+            cardNameInput.value = button.dataset.cardName || "";
+            copy.textContent = `Enviar mensaje a ${button.dataset.receiverName || "usuario"} por la carta ${button.dataset.cardName || ""}`.trim();
+            textarea.value = "";
+            modal.hidden = false;
+            textarea.focus();
+          });
+        });
+
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", closeModal);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            closeModal();
+          }
+        });
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

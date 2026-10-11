@@ -1,0 +1,39 @@
+# Buscador de Cartas Magic
+
+Version: `0.1.0-alpha.1`
+
+Aplicacion web en Python que consulta la API de Scryfall para buscar cartas de Magic: The Gathering.
+
+## Funciones
+
+- Busqueda por texto o por sintaxis avanzada de Scryfall.
+- Enter en el buscador para listar resultados.
+- Vista detalle de una carta con imagen y la mayor parte de su informacion.
+
+## Ejecutar
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
+
+Luego abre `http://127.0.0.1:5000`.
+
+## Notificaciones por correo
+
+Los mensajes nuevos y las respuestas envian un aviso al correo del usuario receptor. Configura SMTP en la misma ventana de PowerShell antes de iniciar Flask:
+
+```powershell
+$env:SMTP_HOST = "smtp.gmail.com"
+$env:SMTP_PORT = "587"
+$env:SMTP_USERNAME = "tu-cuenta@gmail.com"
+$secret = Read-Host "Clave de aplicacion SMTP" -AsSecureString
+$env:SMTP_PASSWORD = [System.Net.NetworkCredential]::new("", $secret).Password
+$env:SMTP_FROM_EMAIL = $env:SMTP_USERNAME
+$env:APP_BASE_URL = "http://127.0.0.1:5000"
+python -m flask --app app run --host 127.0.0.1 --port 5000
+```
+
+Usa los datos SMTP de tu proveedor. Con Gmail, crea una clave de aplicacion y no uses la contrasena normal de la cuenta. Para servidores que requieren SSL directo en el puerto 465, define tambien `$env:SMTP_USE_SSL = "true"`. Si SMTP no esta configurado o falla, el mensaje permanece guardado en la aplicacion y se muestra un aviso.

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Buscador Magic{% endblock %}
+{% block banner_title %}Arcana para cartas, sets y detalles{% endblock %}
+{% block banner_text %}Una portada inspirada en Arcana de HTML5 UP, adaptada al flujo de búsqueda y detalle de Scryfall.{% endblock %}
+
+{% block content %}
+  <section class="hero hero-home arcana-hero">
+    <div class="hero-copy">
+      <span class="section-kicker">Buscador principal</span>
+      <h1>Busca cartas como si fuera un mini Google de Magic</h1>
+      <p class="intro">
+        Escribe el nombre, color, tipo o una consulta avanzada de Scryfall y presiona Enter.
+      </p>
+      <div class="hero-actions">
+        <a class="nav-button" href="{{ url_for('register_page') }}">Registrarse con Google</a>
+      </div>
+    </div>
+    <div class="hero-side">
+      <a class="feature-tile feature-link" href="{{ url_for('saved_cards_page', status='busco') }}">
+        <h3>Autocompletado</h3>
+        <p>Obtén sugerencias desde el tercer carácter con Scryfall.</p>
+      </a>
+      <a class="feature-tile feature-link" href="{{ url_for('saved_cards_page', status='ofrezco') }}">
+        <h3>Ediciones</h3>
+        <p>Consulta sets e impresiones distintas de una misma carta.</p>
+      </a>
+      <article class="feature-tile">
+        <h3>Acceso global</h3>
+        <p>El buscador está presente en todas las páginas como cabecera principal.</p>
+      </article>
+    </div>
+  </section>
+
+  {% if state.error %}
+    <section class="message error">{{ state.error }}</section>
+  {% elif state.query and state.results is not none %}
+    <section class="results-header">
+      <h2>Resultados para "{{ state.query }}"</h2>
+      <p>{{ state.results|length }} cartas encontradas</p>
+    </section>
+
+    <section class="card-list">
+      {% for card in state.results %}
+        <article class="result-card">
+          <div class="result-main">
+            <h3 class="card-hover-trigger" data-card-image="{{ card.image_url or '' }}">{{ card.name }}</h3>
+            <p>{{ card.type_line or 'Sin tipo disponible' }}</p>
+            <p class="muted">
+              {{ card.set_name or 'Set desconocido' }}
+              {% if card.released_at %}- {{ card.released_at }}{% endif %}
+            </p>
+            {% if card.oracle_text %}
+              <p class="oracle-preview">{{ card.oracle_text[:220] }}{% if card.oracle_text|length > 220 %}...{% endif %}</p>
+            {% endif %}
+          </div>
+          <div class="result-meta">
+            {% if card.mana_cost %}
+              <p><strong>Costo:</strong> {{ card.mana_cost }}</p>
+            {% endif %}
+            <p><strong>Rareza:</strong> {{ card.rarity or 'N/D' }}</p>
+            {% if card.power and card.toughness %}
+              <p><strong>P/T:</strong> {{ card.power }}/{{ card.toughness }}</p>
+            {% endif %}
+            <a class="detail-link" href="{{ url_for('card_detail', card_id=card.id) }}">Ver detalle</a>
+          </div>
+        </article>
+      {% else %}
+        <article class="message">No se encontraron cartas para esta busqueda.</article>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endblock %}

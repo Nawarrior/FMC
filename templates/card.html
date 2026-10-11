@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ card.name if card else 'Carta no disponible' }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="shell detail-shell">
+    <a class="back-link" href="{{ url_for('index') }}">← Volver al buscador</a>
+
+    {% if error %}
+      <section class="message error">{{ error }}</section>
+    {% elif card %}
+      <section class="detail-grid">
+        <div class="image-panel">
+          {% if card.image_url %}
+            <img src="{{ card.image_url }}" alt="Imagen de {{ card.name }}">
+          {% else %}
+            <div class="image-fallback">Sin imagen disponible</div>
+          {% endif %}
+        </div>
+
+        <article class="info-panel">
+          <p class="eyebrow">{{ card.set_name }} · {{ card.set_code|upper }} #{{ card.collector_number }}</p>
+          <h1>{{ card.name }}</h1>
+          {% if editions %}
+            <form class="edition-form" method="get" action="{{ url_for('card_detail', card_id=card.id) }}">
+              <label for="edition"><strong>Set Name</strong></label>
+              <div class="edition-controls">
+                <select id="edition" name="edition" onchange="this.form.submit()">
+                  {% for edition in editions %}
+                    <option value="{{ edition.id }}" {% if edition.selected %}selected{% endif %}>
+                      {{ edition.label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </form>
+          {% endif %}
+          {% if card.mana_cost %}
+            <p class="headline-meta">{{ card.mana_cost }} · CMC {{ card.cmc }}</p>
+          {% endif %}
+          <p>{{ card.type_line }}</p>
+
+          {% if card.oracle_text %}
+            <section>
+              <h2>Texto</h2>
+              <p class="preserve-linebreaks">{{ card.oracle_text }}</p>
+            </section>
+          {% endif %}
+
+          {% if card.flavor_text %}
+            <section>
+              <h2>Flavor</h2>
+              <p class="flavor preserve-linebreaks">{{ card.flavor_text }}</p>
+            </section>
+          {% endif %}
+
+          <section class="stats-grid">
+            <div><strong>Rareza</strong><span>{{ card.rarity or 'N/D' }}</span></div>
+            <div><strong>Colores</strong><span>{{ card.colors|join(', ') if card.colors else 'Incolora' }}</span></div>
+            <div><strong>Lanzamiento</strong><span>{{ card.released_at or 'N/D' }}</span></div>
+            <div><strong>Artista</strong><span>{{ card.artist or 'N/D' }}</span></div>
+            {% if card.power and card.toughness %}
+              <div><strong>P/T</strong><span>{{ card.power }}/{{ card.toughness }}</span></div>
+            {% endif %}
+            {% if card.loyalty %}
+              <div><strong>Lealtad</strong><span>{{ card.loyalty }}</span></div>
+            {% endif %}
+            {% if card.defense %}
+              <div><strong>Defensa</strong><span>{{ card.defense }}</span></div>
+            {% endif %}
+          </section>
+
+          {% if card.keywords %}
+            <section>
+              <h2>Keywords</h2>
+              <p>{{ card.keywords|join(', ') }}</p>
+            </section>
+          {% endif %}
+
+          <section class="links-panel">
+            {% if card.usd_price %}
+              <p><strong>USD:</strong> ${{ card.usd_price }}</p>
+            {% endif %}
+            {% if card.usd_foil_price %}
+              <p><strong>USD Foil:</strong> ${{ card.usd_foil_price }}</p>
+            {% endif %}
+            {% if card.eur_price %}
+              <p><strong>EUR:</strong> €{{ card.eur_price }}</p>
+            {% endif %}
+            {% if card.scryfall_uri %}
+              <a href="{{ card.scryfall_uri }}" target="_blank" rel="noreferrer">Abrir en Scryfall</a>
+            {% endif %}
+            {% if card.tcgplayer %}
+              <a href="{{ card.tcgplayer }}" target="_blank" rel="noreferrer">Ver en TCGplayer</a>
+            {% endif %}
+            {% if card.cardmarket %}
+              <a href="{{ card.cardmarket }}" target="_blank" rel="noreferrer">Ver en Cardmarket</a>
+            {% endif %}
+          </section>
+        </article>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

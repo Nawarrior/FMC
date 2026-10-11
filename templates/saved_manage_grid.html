@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Mi listado{% endblock %}
+{% block banner_title %}Tus cartas guardadas{% endblock %}
+{% block banner_text %}Revisa las cartas que buscas u ofreces, junto con su edicion y cantidad registrada.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <h1>Mi listado</h1>
+
+    <form class="saved-filters" method="get" action="{{ url_for('saved_cards_page') }}">
+      <div>
+        <label for="status-filter"><strong>Estado</strong></label>
+        <select id="status-filter" name="status">
+          <option value="">Todos</option>
+          <option value="busco" {% if status_filter == 'busco' %}selected{% endif %}>Busco</option>
+          <option value="ofrezco" {% if status_filter == 'ofrezco' %}selected{% endif %}>Ofrezco</option>
+        </select>
+      </div>
+      <div>
+        <label for="rarity-filter"><strong>Rareza</strong></label>
+        <select id="rarity-filter" name="rarity">
+          <option value="">Todas</option>
+          {% for rarity in available_rarities %}
+            <option value="{{ rarity }}" {% if rarity_filter == rarity %}selected{% endif %}>{{ rarity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="saved-filter-actions">
+        <button class="nav-button save-button" type="submit">Filtrar</button>
+      </div>
+    </form>
+
+    {% if saved_cards %}
+      <section class="saved-grid-table">
+        <div class="saved-grid-head">Carta</div>
+        <div class="saved-grid-head">Edicion</div>
+        <div class="saved-grid-head">Estado</div>
+        <div class="saved-grid-head">Cantidad</div>
+        <div class="saved-grid-head">Nota</div>
+        <div class="saved-grid-head">Acciones</div>
+
+        {% for item in saved_cards %}
+          <div class="saved-grid-row">
+            <div class="saved-grid-cell saved-grid-card">
+              <a
+                class="saved-link card-hover-trigger"
+                href="{{ url_for('card_detail', card_id=item.card_id) }}"
+                data-card-image="{{ item.image_url or '' }}"
+              >{{ item.name }}</a>
+              <p class="muted">{{ item.intent|upper }} · {{ item.edition_code }} · {{ item.rarity or 'sin rareza' }}</p>
+              {% if item.user_name %}
+                <p class="muted">Registrada por <a class="saved-link" href="{{ item.user_profile_url }}">{{ item.user_name }}</a></p>
+              {% endif %}
+            </div>
+
+            <form class="saved-grid-form" method="post" action="{{ url_for('update_saved_card', item_index=item.index) }}">
+              <div class="saved-grid-cell">
+                {% if item.can_manage %}
+                  {% if item.editions %}
+                    {% set selected_edition = item.editions|selectattr('selected')|list|first %}
+                    <input type="hidden" id="edition-{{ item.index }}" name="edition" value="{{ selected_edition.id if selected_edition else item.card_id }}">
+                    <div class="edition-picker saved-edition-picker" data-edition-picker>
+                      <button
+                        class="edition-picker-trigger saved-edition-trigger"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        data-edition-picker-trigger
+                      >
+                        <span class="edition-picker-option">
+                          <span class="edition-symbol-wrap">
+                            <i class="ss ss-{{ (selected_edition.set_code if selected_edition else item.edition_code)|lower }}"></i>
+                          </span>
+                          <span>{{ selected_edition.label if selected_edition else item.edition }}</span>
+                        </span>
+                        <span class="edition-picker-caret" aria-hidden="true">▾</span>
+                      </button>
+                      <div class="edition-picker-menu" data-edition-picker-menu hidden>
+                        <ul class="edition-picker-list" role="listbox" aria-label="Ediciones disponibles">
+                          {% for edition in item.editions %}
+                            <li>
+                              <button
+                                type="button"
+                                class="edition-picker-item{% if edition.selected %} is-selected{% endif %}"
+                                data-edition-value="{{ edition.id }}"
+                                data-edition-picker-item
+                              >
+                                <span class="edition-picker-option">
+                                  <span class="edition-symbol-wrap">
+                                    <i class="ss ss-{{ edition.set_code|lower }}"></i>
+                                  </span>
+                                  <span>{{ edition.label }}</span>
+                                </span>
+                              </button>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span>{{ item.edition }}</span>
+                  {% endif %}
+                {% else %}
+                  <span>{{ item.edition }}</span>
+                {% endif %}
+              </div>
+
+              <div class="saved-grid-cell">
+                {% if item.can_manage %}
+                  <select id="intent-{{ item.index }}" name="intent">
+                    <option value="busco" {% if item.intent == 'busco' %}selected{% endif %}>Busco</option>
+                    <option value="ofrezco" {% if item.intent == 'ofrezco' %}selected{% endif %}>Ofrezco</option>
+                  </select>
+                {% else %}
+                  <span>{{ item.intent|capitalize }}</span>
+                {% endif %}
+                {% if item.transaction_completed %}
+                  <span class="transaction-completed-badge">Transacción terminada</span>
+                {% endif %}
+              </div>
+
+              <div class="saved-grid-cell">
+                {% if item.can_manage %}
+                  <select id="quantity-{{ item.index }}" name="quantity">
+                    {% for amount in ['1', '2', '3', '4'] %}
+                      <option value="{{ amount }}" {% if item.quantity|string == amount %}selected{% endif %}>{{ amount }}</option>
+                    {% endfor %}
+                  </select>
+                {% else %}
+                  <span>{{ item.quantity }}</span>
+                {% endif %}
+              </div>
+
+              <div class="saved-grid-cell">
+                {% if item.can_manage %}
+                  <textarea id="note-{{ item.index }}" name="note" rows="2">{{ item.note or '' }}</textarea>
+                {% else %}
+                  <span>{{ item.note or '-' }}</span>
+                {% endif %}
+              </div>
+
+              <div class="saved-grid-cell saved-grid-actions">
+                {% if item.can_manage %}
+                  <button class="nav-button save-button" type="submit">Actualizar</button>
+                  <button
+                    class="nav-button save-button transaction-state-button"
+                    type="submit"
+                    formmethod="post"
+                    formaction="{{ url_for('toggle_saved_transaction', item_index=item.index) }}"
+                  >{{ 'Reactivar publicación' if item.transaction_completed else 'Marcar transacción terminada' }}</button>
+                  <button
+                    class="delete-button inline-delete-button"
+                    type="submit"
+                    formmethod="post"
+                    formaction="{{ url_for('delete_saved_card', item_index=item.index) }}"
+                  >Eliminar</button>
+                {% endif %}
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="message">Aun no has guardado cartas en tu listado.</section>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    (() => {
+      const pickers = Array.from(document.querySelectorAll(".saved-edition-picker[data-edition-picker]"));
+      if (!pickers.length) {
+        return;
+      }
+
+      const closePicker = (picker) => {
+        const menu = picker.querySelector("[data-edition-picker-menu]");
+        const trigger = picker.querySelector("[data-edition-picker-trigger]");
+        if (!menu || !trigger) {
+          return;
+        }
+
+        menu.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+      };
+
+      pickers.forEach((picker) => {
+        const trigger = picker.querySelector("[data-edition-picker-trigger]");
+        const menu = picker.querySelector("[data-edition-picker-menu]");
+        const input = picker.parentElement?.querySelector("input[name='edition']");
+        const form = picker.closest("form");
+        const items = Array.from(picker.querySelectorAll("[data-edition-picker-item]"));
+
+        if (!trigger || !menu || !input || !form || !items.length) {
+          return;
+        }
+
+        trigger.addEventListener("click", () => {
+          const willOpen = menu.hidden;
+          pickers.forEach((currentPicker) => closePicker(currentPicker));
+          if (willOpen) {
+            menu.hidden = false;
+            trigger.setAttribute("aria-expanded", "true");
+          }
+        });
+
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            input.value = item.dataset.editionValue || input.value;
+            form.requestSubmit();
+          });
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        pickers.forEach((picker) => {
+          if (!picker.contains(event.target)) {
+            closePicker(picker);
+          }
+        });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          pickers.forEach((picker) => closePicker(picker));
+        }
+      });
+    })();
+  </script>
+{% endblock %}

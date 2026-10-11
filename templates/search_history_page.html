@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Búsquedas{% endblock %}
+{% block banner_title %}Historial de búsquedas realizadas{% endblock %}
+{% block banner_text %}Listado de términos que se han buscado desde la aplicación.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <p class="eyebrow">Admin</p>
+    <h1>Historial de guardados</h1>
+    <p class="intro">
+      Aqui queda registrado cada termino buscado al presionar <strong>Buscar</strong> o al elegir una sugerencia del listado.
+    </p>
+
+    <style>
+      .pagination {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+        align-items: center;
+      }
+      .pagination-link {
+        display: inline-flex;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(96, 110, 234, 0.25);
+        background: #f8f9ff;
+        color: #2b3a59;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .pagination-link.current {
+        background: #4257ff;
+        color: #ffffff;
+        border-color: #4257ff;
+      }
+      .pagination-link.disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+    </style>
+
+    <div class="page-actions">
+      <a class="nav-link" href="{{ url_for('search_history_dashboard_page') }}">Ver dashboard de búsquedas</a>
+    </div>
+
+    {% if history %}
+      <section class="history-grid">
+        <div class="history-grid-header">Nombre carta</div>
+        <div class="history-grid-header">Fecha</div>
+        {% for item in history %}
+          <div
+            class="history-grid-cell card-hover-trigger"
+            data-card-image="{{ item.image_url or '' }}"
+          >{{ item.search_term or item.card_name }}</div>
+          <div class="history-grid-cell history-grid-date">{{ item.searched_at or item.saved_at }}</div>
+        {% endfor %}
+      </section>
+
+      {% if total_pages > 1 %}
+        <nav class="pagination" aria-label="Paginación de historial">
+          {% if page > 1 %}
+            <a class="pagination-link" href="{{ url_for('search_history_page', page=page-1) }}">« Anterior</a>
+          {% else %}
+            <span class="pagination-link disabled">« Anterior</span>
+          {% endif %}
+
+          {% for page_number in range(1, total_pages + 1) %}
+            {% if page_number == page %}
+              <span class="pagination-link current">{{ page_number }}</span>
+            {% else %}
+              <a class="pagination-link" href="{{ url_for('search_history_page', page=page_number) }}">{{ page_number }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page < total_pages %}
+            <a class="pagination-link" href="{{ url_for('search_history_page', page=page+1) }}">Siguiente »</a>
+          {% else %}
+            <span class="pagination-link disabled">Siguiente »</span>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <section class="message">Todavia no hay guardados registrados.</section>
+    {% endif %}
+  </section>
+{% endblock %}
