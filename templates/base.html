@@ -48,8 +48,6 @@
             <form method="post" action="{{ url_for('logout') }}">
               <button class="nav-button" type="submit">Salir</button>
             </form>
-          {% elif google_auth_ready %}
-            <a class="nav-button" href="{{ url_for('auth_google') }}">Entrar con Google</a>
           {% endif %}
         </div>
       </div>

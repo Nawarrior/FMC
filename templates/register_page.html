@@ -9,7 +9,7 @@
     <p class="eyebrow">Cuenta</p>
     <h1>Registro y acceso</h1>
     <p class="intro">
-      Puedes registrarte con correo y clave o entrar con Google si ya lo tienes configurado.
+      Puedes registrarte con correo y clave para seguir armando tu listado de cartas.
     </p>
 
     {% if current_user %}
@@ -88,27 +88,7 @@
           <button class="google-button" type="submit">Entrar</button>
         </form>
 
-        <div class="auth-divider">o</div>
-
-        {% if google_auth_ready %}
-          <a class="google-button auth-google-link" href="{{ url_for('auth_google') }}">Continuar con Google</a>
-        {% else %}
-          <section class="message error">
-            Falta configurar <code>GOOGLE_CLIENT_ID</code> y <code>GOOGLE_CLIENT_SECRET</code>.
-          </section>
-        {% endif %}
       </article>
-    </section>
-
-    <section class="auth-help">
-      <h2>Configuracion de Google</h2>
-      <p>Si quieres usar acceso con Google, define estas variables:</p>
-      <pre><code>set GOOGLE_CLIENT_ID=tu_client_id
-set GOOGLE_CLIENT_SECRET=tu_client_secret
-set FLASK_SECRET_KEY=una_clave_segura</code></pre>
-      <p class="muted">
-        Redirect URI de Google Cloud: <code>{{ url_for('auth_google_callback', _external=True) }}</code>
-      </p>
     </section>
   </section>
 {% endblock %}
