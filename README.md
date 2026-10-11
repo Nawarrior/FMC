@@ -21,6 +21,19 @@ python app.py
 
 Luego abre `http://127.0.0.1:5000`.
 
+## Base de datos
+
+La aplicacion usa SQLite para sus datos propios: usuarios, cartas guardadas, productos, carrito, tiendas, referencias, mensajes e historial de busquedas. Por defecto crea la base en `instance/fmc.db`.
+
+En el primer arranque migra automaticamente los datos existentes desde los archivos JSON locales si las tablas estan vacias. La busqueda y el detalle de cartas siguen consultando siempre la API de Scryfall.
+
+Para usar otra ruta de base de datos:
+
+```powershell
+$env:DATABASE_PATH = "C:\ruta\a\fmc.db"
+python app.py
+```
+
 ## Notificaciones por correo
 
 Los mensajes nuevos y las respuestas envian un aviso al correo del usuario receptor. Configura SMTP en la misma ventana de PowerShell antes de iniciar Flask:

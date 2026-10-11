@@ -19,6 +19,8 @@ from authlib.integrations.flask_client import OAuth
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from database import initialize_database, load_collection, migrate_json_files_to_db, save_collection
+
 
 SCRYFALL_API = "https://api.scryfall.com"
 REST_COUNTRIES_API = "https://restcountries.com/v3.1/all?fields=name,cca2,flags"
@@ -32,6 +34,17 @@ USER_REFERENCES_FILE = Path(__file__).with_name("referenciasUsr.json")
 STORES_FILE = Path(__file__).with_name("shops.json")
 STORE_REFERENCES_FILE = Path(__file__).with_name("referenciasTienda.json")
 MESSAGES_FILE = Path(__file__).with_name("mensajes.json")
+JSON_COLLECTIONS = {
+    "saved_cards": SAVED_CARDS_FILE,
+    "search_log": SEARCH_LOG_FILE,
+    "products": PRODUCTS_FILE,
+    "cart": CART_FILE,
+    "user_references": USER_REFERENCES_FILE,
+    "stores": STORES_FILE,
+    "store_references": STORE_REFERENCES_FILE,
+    "messages": MESSAGES_FILE,
+    "users": USERS_FILE,
+}
 ROLE_OPTIONS = ("adm", "moderador", "usuario", "tienda")
 COUNTRY_OPTIONS = (
     {"code": "CL", "label": "Chile", "flag": "🇨🇱"},
@@ -74,6 +87,9 @@ google = oauth.register(
     client_secret=app.config["GOOGLE_CLIENT_SECRET"] or None,
     client_kwargs={"scope": "openid email profile"},
 )
+
+initialize_database()
+migrate_json_files_to_db(JSON_COLLECTIONS)
 
 
 @dataclass
@@ -253,37 +269,19 @@ def get_card_editions(card: dict[str, Any], selected_id: str) -> list[dict[str, 
 
 
 def load_saved_cards() -> list[dict[str, Any]]:
-    if not SAVED_CARDS_FILE.exists():
-        return []
-
-    try:
-        return json.loads(SAVED_CARDS_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("saved_cards")
 
 
 def save_saved_cards(items: list[dict[str, Any]]) -> None:
-    SAVED_CARDS_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("saved_cards", items)
 
 
 def load_search_log() -> list[dict[str, Any]]:
-    if not SEARCH_LOG_FILE.exists():
-        return []
-
-    try:
-        return json.loads(SEARCH_LOG_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("search_log")
 
 
 def save_search_log(items: list[dict[str, Any]]) -> None:
-    SEARCH_LOG_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("search_log", items)
 
 
 def append_search_log(search_term: str, card_metadata: dict[str, Any] | None = None) -> None:
@@ -304,105 +302,51 @@ def append_search_log(search_term: str, card_metadata: dict[str, Any] | None = N
 
 
 def load_products() -> list[dict[str, Any]]:
-    if not PRODUCTS_FILE.exists():
-        return []
-
-    try:
-        return json.loads(PRODUCTS_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("products")
 
 
 def save_products(items: list[dict[str, Any]]) -> None:
-    PRODUCTS_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("products", items)
 
 
 def load_cart() -> list[dict[str, Any]]:
-    if not CART_FILE.exists():
-        return []
-
-    try:
-        return json.loads(CART_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("cart")
 
 
 def save_cart(items: list[dict[str, Any]]) -> None:
-    CART_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("cart", items)
 
 
 def load_user_references() -> list[dict[str, Any]]:
-    if not USER_REFERENCES_FILE.exists():
-        return []
-
-    try:
-        return json.loads(USER_REFERENCES_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("user_references")
 
 
 def save_user_references(items: list[dict[str, Any]]) -> None:
-    USER_REFERENCES_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("user_references", items)
 
 
 def load_stores() -> list[dict[str, Any]]:
-    if not STORES_FILE.exists():
-        return []
-
-    try:
-        return json.loads(STORES_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("stores")
 
 
 def save_stores(items: list[dict[str, Any]]) -> None:
-    STORES_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("stores", items)
 
 
 def load_store_references() -> list[dict[str, Any]]:
-    if not STORE_REFERENCES_FILE.exists():
-        return []
-
-    try:
-        return json.loads(STORE_REFERENCES_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("store_references")
 
 
 def save_store_references(items: list[dict[str, Any]]) -> None:
-    STORE_REFERENCES_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("store_references", items)
 
 
 def load_messages() -> list[dict[str, Any]]:
-    if not MESSAGES_FILE.exists():
-        return []
-
-    try:
-        return json.loads(MESSAGES_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("messages")
 
 
 def save_messages(items: list[dict[str, Any]]) -> None:
-    MESSAGES_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("messages", items)
 
 
 def normalize_price(value: str) -> float:
@@ -421,20 +365,11 @@ def normalize_quantity(value: str) -> int:
 
 
 def load_users() -> list[dict[str, Any]]:
-    if not USERS_FILE.exists():
-        return []
-
-    try:
-        return json.loads(USERS_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+    return load_collection("users")
 
 
 def save_users(items: list[dict[str, Any]]) -> None:
-    USERS_FILE.write_text(
-        json.dumps(items, ensure_ascii=True, indent=2),
-        encoding="utf-8",
-    )
+    save_collection("users", items)
 
 
 def normalize_role(role: str | None) -> str:

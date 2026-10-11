@@ -13,3 +13,5 @@ referenciasUsr.json
 saved_cards.json
 shops.json
 users.json
+instance/*.db
+instance/*.db-*
