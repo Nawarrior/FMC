@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.message import EmailMessage
+import hashlib
 import os
 from pathlib import Path
+import secrets
 import smtplib
 import ssl
 from typing import Any
@@ -45,6 +47,7 @@ JSON_COLLECTIONS = {
     "messages": MESSAGES_FILE,
     "users": USERS_FILE,
 }
+PASSWORD_RESET_EXPIRATION_HOURS = 1
 ROLE_OPTIONS = ("adm", "moderador", "usuario", "tienda")
 COUNTRY_OPTIONS = (
     {"code": "CL", "label": "Chile", "flag": "🇨🇱"},
@@ -372,6 +375,55 @@ def save_users(items: list[dict[str, Any]]) -> None:
     save_collection("users", items)
 
 
+def load_password_reset_tokens() -> list[dict[str, Any]]:
+    return load_collection("password_reset_tokens")
+
+
+def save_password_reset_tokens(items: list[dict[str, Any]]) -> None:
+    save_collection("password_reset_tokens", items)
+
+
+def hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_password_reset_token(user: dict[str, Any]) -> str:
+    token = secrets.token_urlsafe(32)
+    created_at = datetime.now()
+    tokens = []
+    for item in load_password_reset_tokens():
+        expires_at = parse_search_timestamp(item.get("expires_at"))
+        if item.get("used_at") or (expires_at and expires_at > created_at):
+            tokens.append(item)
+
+    tokens.append(
+        {
+            "token_hash": hash_reset_token(token),
+            "user_email": (user.get("email") or "").strip().lower(),
+            "created_at": created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "expires_at": (created_at + timedelta(hours=PASSWORD_RESET_EXPIRATION_HOURS)).strftime("%Y-%m-%d %H:%M:%S"),
+            "used_at": "",
+        }
+    )
+    save_password_reset_tokens(tokens)
+    return token
+
+
+def find_valid_password_reset_token(token: str) -> tuple[int, dict[str, Any]] | tuple[None, None]:
+    token_hash = hash_reset_token(token)
+    now = datetime.now()
+    for index, item in enumerate(load_password_reset_tokens()):
+        expires_at = parse_search_timestamp(item.get("expires_at"))
+        if (
+            item.get("token_hash") == token_hash
+            and not item.get("used_at")
+            and expires_at
+            and expires_at > now
+        ):
+            return index, item
+    return None, None
+
+
 def normalize_role(role: str | None) -> str:
     normalized_role = (role or "").strip().lower()
     return normalized_role if normalized_role in ROLE_OPTIONS else "usuario"
@@ -642,6 +694,66 @@ def notify_message_recipient(receiver: dict[str, Any], sender: dict[str, str], c
         return send_message_notification(receiver, sender, card_name)
     except (OSError, smtplib.SMTPException, ValueError):
         app.logger.exception("No se pudo enviar la notificacion de mensaje por correo.")
+        return False
+
+
+def send_password_reset_email(user: dict[str, Any], reset_url: str) -> bool:
+    smtp_host = os.environ.get("SMTP_HOST", "").strip()
+    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    from_email = os.environ.get("SMTP_FROM_EMAIL", "").strip() or smtp_username
+    receiver_email = (user.get("email") or "").strip()
+
+    if not smtp_host or not from_email or not receiver_email:
+        return False
+    if bool(smtp_username) != bool(smtp_password):
+        raise ValueError("SMTP_USERNAME y SMTP_PASSWORD deben configurarse juntos.")
+
+    try:
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    except ValueError as exc:
+        raise ValueError("SMTP_PORT debe ser un numero valido.") from exc
+
+    use_ssl = os.environ.get("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"}
+    use_starttls = os.environ.get("SMTP_USE_STARTTLS", "true").strip().lower() in {"1", "true", "yes"}
+
+    message = EmailMessage()
+    message["Subject"] = "Recupera tu clave de Findmycard"
+    message["From"] = from_email
+    message["To"] = receiver_email
+    message.set_content(
+        f"Hola {user.get('name') or 'usuario'},\n\n"
+        "Recibimos una solicitud para cambiar tu clave de Findmycard.\n"
+        f"Este enlace vence en {PASSWORD_RESET_EXPIRATION_HOURS} hora(s):\n\n"
+        f"{reset_url}\n\n"
+        "Si no pediste este cambio, puedes ignorar este correo.\n"
+    )
+
+    if use_ssl:
+        smtp_connection = smtplib.SMTP_SSL(
+            smtp_host,
+            smtp_port,
+            timeout=15,
+            context=ssl.create_default_context(),
+        )
+    else:
+        smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+
+    with smtp_connection as smtp:
+        if not use_ssl and use_starttls:
+            smtp.starttls(context=ssl.create_default_context())
+        if smtp_username:
+            smtp.login(smtp_username, smtp_password)
+        smtp.send_message(message)
+
+    return True
+
+
+def notify_password_reset(user: dict[str, Any], reset_url: str) -> bool:
+    try:
+        return send_password_reset_email(user, reset_url)
+    except (OSError, smtplib.SMTPException, ValueError):
+        app.logger.exception("No se pudo enviar el correo de recuperacion de clave.")
         return False
 
 
@@ -1526,6 +1638,67 @@ def login_local() -> Any:
     }
     flash("Sesion iniciada.", "success")
     return redirect(url_for("index"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password_page() -> Any:
+    if request.method == "GET":
+        return render_template("forgot_password_page.html", search_query="")
+
+    email = request.form.get("email", "").strip().lower()
+    user = find_user_by_email(email)
+
+    if not user:
+        flash("Si el correo existe, enviaremos instrucciones para recuperar la clave.", "success")
+        return redirect(url_for("register_page"))
+
+    token = create_password_reset_token(user)
+    reset_url = url_for("reset_password_page", token=token, _external=True)
+    if notify_password_reset(user, reset_url):
+        flash("Enviamos un enlace para recuperar tu clave.", "success")
+        return redirect(url_for("register_page"))
+
+    flash("No se pudo enviar el correo de recuperacion. Revisa la configuracion SMTP.", "error")
+    return redirect(url_for("forgot_password_page"))
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password_page(token: str) -> Any:
+    token_index, reset_token = find_valid_password_reset_token(token)
+    if reset_token is None or token_index is None:
+        flash("El enlace de recuperacion no existe o ya expiro.", "error")
+        return redirect(url_for("forgot_password_page"))
+
+    if request.method == "GET":
+        return render_template("reset_password_page.html", search_query="", token=token)
+
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    if len(password) < 6:
+        flash("La clave debe tener al menos 6 caracteres.", "error")
+        return redirect(url_for("reset_password_page", token=token))
+    if password != confirm_password:
+        flash("Las claves no coinciden.", "error")
+        return redirect(url_for("reset_password_page", token=token))
+
+    users = get_users()
+    normalized_email = (reset_token.get("user_email") or "").strip().lower()
+    for user in users:
+        if (user.get("email") or "").strip().lower() == normalized_email:
+            user["password_hash"] = generate_password_hash(password)
+            user["provider"] = user.get("provider") or "local"
+            break
+    else:
+        flash("Usuario no encontrado.", "error")
+        return redirect(url_for("forgot_password_page"))
+
+    save_users(users)
+    tokens = load_password_reset_tokens()
+    tokens[token_index]["used_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_password_reset_tokens(tokens)
+    session.pop("user", None)
+    flash("Clave actualizada correctamente. Inicia sesion con tu nueva clave.", "success")
+    return redirect(url_for("register_page"))
 
 
 @app.route("/saved", methods=["GET"])

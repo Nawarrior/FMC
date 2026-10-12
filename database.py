@@ -131,6 +131,16 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
         },
         "json_fields": {"colors", "legalities"},
     },
+    "password_reset_tokens": {
+        "columns": {
+            "token_hash": "TEXT",
+            "user_email": "TEXT",
+            "created_at": "TEXT",
+            "expires_at": "TEXT",
+            "used_at": "TEXT",
+        },
+        "json_fields": set(),
+    },
 }
 
 COLLECTION_TABLES = tuple(TABLE_DEFINITIONS.keys())
