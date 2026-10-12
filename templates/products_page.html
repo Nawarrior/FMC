@@ -20,6 +20,7 @@
         </div>
       </div>
       <form class="product-form-grid" method="post" action="{{ url_for('create_product') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label for="product-name"><strong>Nombre</strong></label>
           <input id="product-name" name="name" type="text" placeholder="Ejemplo: Deck Box Dragon Shield" required>
@@ -66,6 +67,7 @@
 
         {% for product in products %}
           <form class="products-row" method="post" action="{{ url_for('update_product', product_index=loop.index0) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="products-cell">
               <p class="products-mobile-label">Producto</p>
               <label class="sr-only" for="product-name-{{ loop.index0 }}">Nombre</label>

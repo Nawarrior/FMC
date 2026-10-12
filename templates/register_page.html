@@ -31,6 +31,7 @@
         </div>
       </div>
       <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="google-button" type="submit">Cerrar sesion</button>
       </form>
     {% endif %}
@@ -39,6 +40,7 @@
       <article class="auth-card">
         <h2>Crear cuenta</h2>
         <form class="auth-form" method="post" action="{{ url_for('register_local') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div>
             <label for="register-name">Nombre</label>
             <input id="register-name" name="name" type="text" placeholder="Tu nombre" required>
@@ -77,6 +79,7 @@
       <article class="auth-card">
         <h2>Iniciar sesion</h2>
         <form class="auth-form" method="post" action="{{ url_for('login_local') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div>
             <label for="login-email">Correo</label>
             <input id="login-email" name="email" type="email" placeholder="tu@correo.com" required>

@@ -63,6 +63,7 @@
         <h2>Referencias</h2>
         {% if can_leave_reference %}
           <form class="user-reference-form" method="post" action="{{ url_for('save_store_reference', shop_id=store.shop_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
               <label for="store-reference-text"><strong>Comentario</strong></label>
               <textarea id="store-reference-text" name="reference_text" rows="4" placeholder="Escribe tu referencia sobre esta tienda"></textarea>

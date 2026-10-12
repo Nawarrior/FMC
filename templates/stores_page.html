@@ -21,6 +21,7 @@
       </div>
 
       <form class="product-form-grid" method="post" action="{{ url_for('create_store') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label for="store-name"><strong>Nombre</strong></label>
           <input id="store-name" name="name" type="text" placeholder="Nombre de la tienda" required>
@@ -70,6 +71,7 @@
             </div>
 
             <form class="store-card-body" method="post" action="{{ url_for('update_store', shop_index=store.index) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="product-card-top">
                 <div>
                   <p class="eyebrow">Tienda</p>

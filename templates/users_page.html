@@ -22,6 +22,7 @@
           {% endif %}
 
           <form class="saved-edit-form" method="post" action="{{ url_for('update_user_profile', user_index=loop.index0) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="saved-edit-grid">
               <div>
                 <label for="role-{{ loop.index0 }}">Perfil</label>

@@ -33,6 +33,7 @@
             </div>
 
             <form class="message-reply-form" method="post" action="{{ url_for('reply_message') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="receiver_user_id" value="{{ thread.other_user_id }}">
               <textarea name="message_text" rows="3" placeholder="Escribe tu respuesta"></textarea>
               <button class="nav-button save-button" type="submit">Responder</button>

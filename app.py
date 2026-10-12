@@ -18,7 +18,7 @@ import json
 import time
 
 from authlib.integrations.flask_client import OAuth
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import initialize_database, load_collection, migrate_json_files_to_db, save_collection
@@ -48,6 +48,8 @@ JSON_COLLECTIONS = {
     "users": USERS_FILE,
 }
 PASSWORD_RESET_EXPIRATION_HOURS = 1
+PASSWORD_RESET_RATE_LIMIT = 5
+PASSWORD_RESET_RATE_LIMIT_MINUTES = 60
 ROLE_OPTIONS = ("adm", "moderador", "usuario", "tienda")
 COUNTRY_OPTIONS = (
     {"code": "CL", "label": "Chile", "flag": "🇨🇱"},
@@ -77,10 +79,14 @@ LEGALITY_OPTIONS = (
 )
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "false").strip().lower() in {"1", "true", "yes"}
 app.config["GOOGLE_CLIENT_ID"] = os.environ.get("GOOGLE_CLIENT_ID", "")
 app.config["GOOGLE_CLIENT_SECRET"] = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 app.config["GOOGLE_DISCOVERY_URL"] = "https://accounts.google.com/.well-known/openid-configuration"
+app.config["GOOGLE_LOGIN_ENABLED"] = os.environ.get("GOOGLE_LOGIN_ENABLED", "false").strip().lower() in {"1", "true", "yes"}
 
 oauth = OAuth(app)
 google = oauth.register(
@@ -103,7 +109,26 @@ class SearchState:
 
 
 def google_auth_ready() -> bool:
-    return bool(app.config["GOOGLE_CLIENT_ID"] and app.config["GOOGLE_CLIENT_SECRET"])
+    return bool(app.config["GOOGLE_LOGIN_ENABLED"] and app.config["GOOGLE_CLIENT_ID"] and app.config["GOOGLE_CLIENT_SECRET"])
+
+
+def csrf_token() -> str:
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+@app.before_request
+def validate_csrf_token() -> None:
+    if request.method != "POST":
+        return
+
+    expected_token = session.get("_csrf_token")
+    submitted_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+    if not expected_token or not submitted_token or not secrets.compare_digest(expected_token, submitted_token):
+        abort(400)
 
 
 @app.context_processor
@@ -116,6 +141,7 @@ def inject_globals() -> dict[str, Any]:
         "is_admin_user": is_admin_user(),
         "cart_count": len(get_current_cart_items()),
         "unread_message_count": get_unread_message_count(),
+        "csrf_token": csrf_token,
     }
 
 
@@ -383,6 +409,14 @@ def save_password_reset_tokens(items: list[dict[str, Any]]) -> None:
     save_collection("password_reset_tokens", items)
 
 
+def load_password_reset_requests() -> list[dict[str, Any]]:
+    return load_collection("password_reset_requests")
+
+
+def save_password_reset_requests(items: list[dict[str, Any]]) -> None:
+    save_collection("password_reset_requests", items)
+
+
 def hash_reset_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
@@ -407,6 +441,32 @@ def create_password_reset_token(user: dict[str, Any]) -> str:
     )
     save_password_reset_tokens(tokens)
     return token
+
+
+def password_reset_rate_limited(email: str, requester: str) -> bool:
+    now = datetime.now()
+    window_start = now - timedelta(minutes=PASSWORD_RESET_RATE_LIMIT_MINUTES)
+    requests = []
+    recent_matches = 0
+    normalized_email = email.strip().lower()
+
+    for item in load_password_reset_requests():
+        created_at = parse_search_timestamp(item.get("created_at"))
+        if not created_at or created_at < window_start:
+            continue
+        requests.append(item)
+        if (item.get("email") or "").strip().lower() == normalized_email or (item.get("requester") or "") == requester:
+            recent_matches += 1
+
+    requests.append(
+        {
+            "email": normalized_email,
+            "requester": requester,
+            "created_at": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+    save_password_reset_requests(requests)
+    return recent_matches >= PASSWORD_RESET_RATE_LIMIT
 
 
 def find_valid_password_reset_token(token: str) -> tuple[int, dict[str, Any]] | tuple[None, None]:
@@ -1646,9 +1706,11 @@ def forgot_password_page() -> Any:
         return render_template("forgot_password_page.html", search_query="")
 
     email = request.form.get("email", "").strip().lower()
+    requester = request.remote_addr or "unknown"
+    is_rate_limited = password_reset_rate_limited(email, requester)
     user = find_user_by_email(email)
 
-    if not user:
+    if is_rate_limited or not user:
         flash("Si el correo existe, enviaremos instrucciones para recuperar la clave.", "success")
         return redirect(url_for("register_page"))
 

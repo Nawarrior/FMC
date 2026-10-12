@@ -46,6 +46,7 @@
               <a class="user-notification-pill" href="{{ url_for('messages_page') }}">{{ unread_message_count }}</a>
             {% endif %}
             <form method="post" action="{{ url_for('logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="nav-button" type="submit">Salir</button>
             </form>
           {% endif %}

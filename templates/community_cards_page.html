@@ -99,6 +99,7 @@
           <button class="contact-modal-close" type="button" data-contact-close>×</button>
         </div>
         <form class="contact-form" method="post" action="{{ url_for('send_message') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="receiver_user_id" id="contact-receiver-id">
           <input type="hidden" name="card_id" id="contact-card-id">
           <input type="hidden" name="card_name" id="contact-card-name">

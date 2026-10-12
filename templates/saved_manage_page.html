@@ -49,6 +49,7 @@
 
             {% if item.can_manage %}
               <form class="saved-edit-form" method="post" action="{{ url_for('update_saved_card', item_index=item.index) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="saved-edit-grid">
                   <div>
                     <label for="edition-{{ item.index }}"><strong>Edicion</strong></label>
@@ -90,6 +91,7 @@
               </form>
 
               <form method="post" action="{{ url_for('delete_saved_card', item_index=item.index) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="delete-button" type="submit">Eliminar</button>
               </form>
             {% endif %}

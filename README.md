@@ -34,6 +34,30 @@ $env:DATABASE_PATH = "C:\ruta\a\fmc.db"
 python app.py
 ```
 
+## Configuracion segura
+
+Antes de usar la app con datos reales, define una clave secreta propia:
+
+```powershell
+$env:FLASK_SECRET_KEY = "cambia-esto-por-un-valor-largo-y-aleatorio"
+```
+
+Si no la defines, la app genera una clave temporal al iniciar; eso sirve para desarrollo, pero cerrara las sesiones al reiniciar.
+
+El login con Google esta deshabilitado por defecto. Para reactivarlo, ademas de definir las credenciales, habilita la bandera:
+
+```powershell
+$env:GOOGLE_LOGIN_ENABLED = "true"
+$env:GOOGLE_CLIENT_ID = "tu_client_id"
+$env:GOOGLE_CLIENT_SECRET = "tu_client_secret"
+```
+
+Si publicas la app bajo HTTPS, activa cookies seguras:
+
+```powershell
+$env:SESSION_COOKIE_SECURE = "true"
+```
+
 ## Notificaciones por correo
 
 Los mensajes nuevos y las respuestas envian un aviso al correo del usuario receptor. Configura SMTP en la misma ventana de PowerShell antes de iniciar Flask:

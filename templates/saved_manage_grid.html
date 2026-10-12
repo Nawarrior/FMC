@@ -55,6 +55,7 @@
             </div>
 
             <form class="saved-grid-form" method="post" action="{{ url_for('update_saved_card', item_index=item.index) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="saved-grid-cell">
                 {% if item.can_manage %}
                   {% if item.editions %}

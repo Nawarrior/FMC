@@ -49,6 +49,7 @@
         <h2>Referencias</h2>
         {% if can_leave_reference %}
           <form class="user-reference-form" method="post" action="{{ url_for('save_user_reference', user_id=profile.user.user_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
               <label for="reference-text"><strong>Comentario</strong></label>
               <textarea id="reference-text" name="reference_text" rows="4" placeholder="Escribe tu referencia sobre este usuario"></textarea>

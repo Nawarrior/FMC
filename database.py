@@ -141,10 +141,28 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
         },
         "json_fields": set(),
     },
+    "password_reset_requests": {
+        "columns": {
+            "email": "TEXT",
+            "requester": "TEXT",
+            "created_at": "TEXT",
+        },
+        "json_fields": set(),
+    },
 }
 
 COLLECTION_TABLES = tuple(TABLE_DEFINITIONS.keys())
 BOOLEAN_FIELDS = {"read", "transaction_completed"}
+INDEX_DEFINITIONS = (
+    ("idx_users_email", "users", ("email",), False),
+    ("idx_users_user_id", "users", ("user_id",), False),
+    ("idx_saved_cards_user_email", "saved_cards", ("user_email",), False),
+    ("idx_saved_cards_card_id", "saved_cards", ("card_id",), False),
+    ("idx_messages_receiver_user_id", "messages", ("receiver_user_id",), False),
+    ("idx_messages_sender_user_id", "messages", ("sender_user_id",), False),
+    ("idx_password_reset_tokens_token_hash", "password_reset_tokens", ("token_hash",), False),
+    ("idx_password_reset_requests_email", "password_reset_requests", ("email",), False),
+)
 
 
 def get_connection() -> sqlite3.Connection:
@@ -179,6 +197,7 @@ def initialize_database() -> None:
                 ON {table_name} (position)
                 """
             )
+        _create_indexes(connection)
 
 
 def load_collection(table_name: str) -> list[dict[str, Any]]:
@@ -273,3 +292,14 @@ def _add_missing_columns(
     for column_name, column_type in expected_columns.items():
         if column_name not in existing_columns:
             connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+
+
+def _create_indexes(connection: sqlite3.Connection) -> None:
+    for index_name, table_name, columns, unique in INDEX_DEFINITIONS:
+        unique_sql = "UNIQUE " if unique else ""
+        connection.execute(
+            f"""
+            CREATE {unique_sql}INDEX IF NOT EXISTS {index_name}
+            ON {table_name} ({", ".join(columns)})
+            """
+        )

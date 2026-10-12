@@ -20,6 +20,7 @@
         </div>
       </div>
       <form class="product-form-grid" method="post" action="{{ url_for('create_product') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
           <label for="product-name"><strong>Nombre</strong></label>
           <input id="product-name" name="name" type="text" placeholder="Ejemplo: Deck Box Dragon Shield" required>
@@ -63,6 +64,7 @@
       <section class="products-card-grid">
         {% for product in products %}
           <form class="product-card" method="post" action="{{ url_for('update_product', product_index=loop.index0) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="product-card-media">
               {% if product.image %}
                 <img src="{{ product.image }}" alt="Imagen de {{ product.name }}" loading="lazy">

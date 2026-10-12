@@ -61,6 +61,7 @@
               </div>
 
               <form class="catalog-cart-form" method="post" action="{{ url_for('add_to_cart', product_index=loop.index0) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                   <label for="catalog-quantity-{{ loop.index0 }}"><strong>Cantidad</strong></label>
                   <select id="catalog-quantity-{{ loop.index0 }}" name="quantity" {% if (product.quantity or 0) <= 0 %}disabled{% endif %}>
