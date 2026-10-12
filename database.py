@@ -39,6 +39,7 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
             "user_name": "TEXT",
             "user_email": "TEXT",
             "transaction_completed": "INTEGER",
+            "created_at": "TEXT",
         },
         "json_fields": set(),
     },
@@ -161,6 +162,7 @@ def initialize_database() -> None:
                 )
                 """
             )
+            _add_missing_columns(connection, table_name, definition["columns"])
             connection.execute(
                 f"""
                 CREATE INDEX IF NOT EXISTS idx_{table_name}_position
@@ -247,3 +249,17 @@ def _serialize_value(table_name: str, column: str, value: Any) -> Any:
 def _validate_table_name(table_name: str) -> None:
     if table_name not in TABLE_DEFINITIONS:
         raise ValueError(f"Unknown database collection: {table_name}")
+
+
+def _add_missing_columns(
+    connection: sqlite3.Connection,
+    table_name: str,
+    expected_columns: dict[str, str],
+) -> None:
+    existing_columns = {
+        row["name"]
+        for row in connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    }
+    for column_name, column_type in expected_columns.items():
+        if column_name not in existing_columns:
+            connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")

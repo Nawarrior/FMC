@@ -1949,6 +1949,7 @@ def save_card_entry(card_id: str) -> Any:
                 "user_id": owner.get("user_id"),
                 "user_name": owner.get("name"),
                 "user_email": owner.get("email"),
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
         )
         save_saved_cards(saved_cards)
@@ -2012,6 +2013,7 @@ def update_saved_card(item_index: int) -> Any:
         "user_id": owner.get("user_id"),
         "user_name": owner.get("name"),
         "user_email": owner.get("email"),
+        "created_at": current_item.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     save_saved_cards(saved_cards)
     flash("Registro actualizado.", "success")
