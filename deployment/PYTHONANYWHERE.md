@@ -26,15 +26,14 @@ pip install -r requirements.txt
 2. Crea una nueva web app.
 3. Elige **Manual configuration**.
 4. Elige Python 3.13 o la version mas cercana disponible.
-5. En **Virtualenv**, escribe:
+5. En **Virtualenv**, escribe, cambiando `TU_USUARIO_PYTHONANYWHERE` por tu usuario:
 
 ```text
 /home/TU_USUARIO_PYTHONANYWHERE/FMC/.venv
 ```
 
 6. Edita el archivo WSGI y reemplaza su contenido por el de `deployment/pythonanywhere_wsgi.py`.
-7. Cambia `TU_USUARIO_PYTHONANYWHERE` por tu usuario real.
-8. Cambia `CAMBIA_ESTA_CLAVE_LARGA_Y_ALEATORIA` por una clave secreta real.
+7. Cambia `CAMBIA_ESTA_CLAVE_LARGA_Y_ALEATORIA` por una clave secreta real.
 
 ## 3. Base de datos
 
@@ -46,7 +45,11 @@ En PythonAnywhere se usara:
 
 La app crea las tablas automaticamente al arrancar.
 
-Para subir una copia de tu base local, puedes cargar `FMC.db` desde el panel **Files** de PythonAnywhere o usar `scp` si tu cuenta lo permite.
+Para subir una copia de tu base local, carga `deployment/FMC.db` desde el panel **Files** de PythonAnywhere y dejala como:
+
+```text
+/home/TU_USUARIO_PYTHONANYWHERE/FMC/FMC.db
+```
 
 ## 4. Recargar
 

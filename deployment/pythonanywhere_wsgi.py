@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 
 
-USERNAME = "TU_USUARIO_PYTHONANYWHERE"
-PROJECT_DIR = Path(f"/home/{USERNAME}/FMC")
+USERNAME = os.environ.get("USER", "TU_USUARIO_PYTHONANYWHERE")
+PROJECT_DIR = Path.home() / "FMC"
 
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
