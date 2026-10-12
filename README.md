@@ -23,7 +23,7 @@ Luego abre `http://127.0.0.1:5000`.
 
 ## Base de datos
 
-La aplicacion usa SQLite para sus datos propios: usuarios, cartas guardadas, productos, carrito, tiendas, referencias, mensajes e historial de busquedas. Por defecto crea la base en `instance/fmc.db`.
+La aplicacion usa SQLite para sus datos propios: usuarios, cartas guardadas, productos, carrito, tiendas, referencias, mensajes e historial de busquedas. Por defecto usa la base `C:\Proyectos\sqlite-tools-win-x64-3540000\FMC.db`.
 
 En el primer arranque migra automaticamente los datos existentes desde los archivos JSON locales si las tablas estan vacias. La busqueda y el detalle de cartas siguen consultando siempre la API de Scryfall.
 
