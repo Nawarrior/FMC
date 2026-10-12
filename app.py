@@ -1976,6 +1976,10 @@ SEARCH_HISTORY_PAGE_SIZE = 10
 
 @app.route("/search-history", methods=["GET"])
 def search_history_page() -> Any:
+    if not is_admin_user():
+        flash("Solo el perfil adm puede acceder al historial de busquedas.", "error")
+        return redirect(url_for("index"))
+
     try:
         page = int(request.args.get("page", "1"))
     except ValueError:
@@ -2000,6 +2004,10 @@ def search_history_page() -> Any:
 
 @app.route("/search-history/dashboard", methods=["GET"])
 def search_history_dashboard_page() -> Any:
+    if not is_admin_user():
+        flash("Solo el perfil adm puede acceder al dashboard de busquedas.", "error")
+        return redirect(url_for("index"))
+
     start_date = request.args.get("start_date", "").strip()
     end_date = request.args.get("end_date", "").strip()
     color_filter = request.args.get("color", "").strip().upper()

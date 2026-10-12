@@ -18,12 +18,15 @@
         <a class="brand-pill brand-logo-link" href="{{ url_for('index') }}" aria-label="Findmycard inicio">
           <img class="brand-logo" src="{{ url_for('static', filename='findmycard-logo.png') }}" alt="Logo de Findmycard">
         </a>
-        <div class="top-actions">
+        <button class="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+          <span class="mobile-menu-bars" aria-hidden="true"></span>
+          <span class="sr-only">Abrir menu</span>
+        </button>
+        <div id="site-menu" class="top-actions" data-site-menu>
           <a class="nav-link" href="{{ url_for('index') }}">Inicio</a>
           <a class="nav-link" href="{{ url_for('saved_cards_page') }}">Mi listado</a>
           <a class="nav-link" href="{{ url_for('products_catalog_page') }}">Productos</a>
           <a class="nav-link" href="{{ url_for('stores_catalog_page') }}">Tiendas</a>
-          <a class="nav-link" href="{{ url_for('search_history_page') }}">Busquedas</a>
           {% if current_user %}
             {% if cart_count %}
               <a class="nav-link" href="{{ url_for('cart_page') }}">Carrito ({{ cart_count }})</a>
@@ -31,6 +34,7 @@
             <a class="nav-link" href="{{ url_for('messages_page') }}">Mensajes{% if unread_message_count %} ({{ unread_message_count }}){% endif %}</a>
           {% endif %}
           {% if is_admin_user %}
+            <a class="nav-link" href="{{ url_for('search_history_page') }}">Busquedas</a>
             <a class="nav-link" href="{{ url_for('products_page') }}">Mantenedor Productos</a>
             <a class="nav-link" href="{{ url_for('stores_page') }}">Mantenedor Tiendas</a>
             <a class="nav-link" href="{{ url_for('users_page') }}">Usuarios</a>
@@ -106,6 +110,26 @@
   </div>
 
   <script>
+    (() => {
+      const toggle = document.querySelector("[data-menu-toggle]");
+      const menu = document.querySelector("[data-site-menu]");
+      if (!toggle || !menu) {
+        return;
+      }
+
+      toggle.addEventListener("click", () => {
+        const isOpen = menu.classList.toggle("is-open");
+        toggle.setAttribute("aria-expanded", String(isOpen));
+      });
+
+      menu.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          menu.classList.remove("is-open");
+          toggle.setAttribute("aria-expanded", "false");
+        });
+      });
+    })();
+
     (() => {
       const escapeHtml = (value) => value
         .replaceAll("&", "&amp;")
