@@ -58,6 +58,10 @@ Si publicas la app bajo HTTPS, activa cookies seguras:
 $env:SESSION_COOKIE_SECURE = "true"
 ```
 
+## Publicacion gratuita
+
+Para publicar la app gratis, usa la guia de PythonAnywhere en `deployment/PYTHONANYWHERE.md`. PythonAnywhere soporta Flask en cuentas gratuitas y permite consultar `api.scryfall.com`, que la app usa para buscar cartas.
+
 ## Notificaciones por correo
 
 Los mensajes nuevos y las respuestas envian un aviso al correo del usuario receptor. Configura SMTP en la misma ventana de PowerShell antes de iniciar Flask:
