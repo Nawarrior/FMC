@@ -62,6 +62,16 @@ $env:SESSION_COOKIE_SECURE = "true"
 
 Para publicar la app gratis, usa la guia de PythonAnywhere en `deployment/PYTHONANYWHERE.md`. PythonAnywhere soporta Flask en cuentas gratuitas y permite consultar `api.scryfall.com`, que la app usa para buscar cartas.
 
+## Notificaciones de coincidencias
+
+Los usuarios con sesion iniciada reciben avisos dentro del sitio, en **Notificaciones**:
+
+- Si alguien busca una carta concreta o la guarda como **Busco**, se avisa a los usuarios que la tienen publicada como **Ofrezco**.
+- Si alguien publica una carta como **Ofrezco**, se avisa a quienes la tienen en **Busco**.
+- Una busqueda amplia avisa cuando el usuario selecciona una carta de los resultados.
+- Las coincidencias se reconocen por nombre, incluso entre ediciones diferentes. Se excluyen las publicaciones propias, terminadas o sin cantidad disponible.
+- Cada coincidencia entre dos usuarios, una carta y una direccion genera como maximo un aviso diario. Los avisos se marcan como leidos al abrir Notificaciones.
+
 ## Notificaciones por correo
 
 Los mensajes nuevos y las respuestas envian un aviso al correo del usuario receptor. Configura SMTP en la misma ventana de PowerShell antes de iniciar Flask:

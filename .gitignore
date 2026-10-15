@@ -15,5 +15,6 @@ shops.json
 users.json
 instance/*.db
 instance/*.db-*
+instance/*.log
 deployment/*.db
 deployment/*.db-*

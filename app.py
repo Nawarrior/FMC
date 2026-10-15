@@ -6,6 +6,7 @@ from email.message import EmailMessage
 import hashlib
 import os
 from pathlib import Path
+import re
 import secrets
 import smtplib
 import ssl
@@ -21,7 +22,11 @@ from authlib.integrations.flask_client import OAuth
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database import initialize_database, load_collection, migrate_json_files_to_db, save_collection
+from database import (
+    add_card_notifications, count_unread_card_notifications, initialize_database,
+    load_card_notifications, load_collection, mark_card_notifications_read,
+    migrate_json_files_to_db, save_collection,
+)
 
 
 SCRYFALL_API = "https://api.scryfall.com"
@@ -141,6 +146,8 @@ def inject_globals() -> dict[str, Any]:
         "is_admin_user": is_admin_user(),
         "cart_count": len(get_current_cart_items()),
         "unread_message_count": get_unread_message_count(),
+        "unread_card_notification_count": count_unread_card_notifications(current_user_identity()["user_id"])
+        if is_authenticated_user() and current_user_identity()["user_id"] else 0,
         "csrf_token": csrf_token,
     }
 
@@ -200,6 +207,161 @@ def get_card(card_id: str) -> dict[str, Any]:
 def autocomplete_cards(query: str) -> list[str]:
     payload = fetch_json(f"/cards/autocomplete?q={quote(query)}")
     return payload.get("data", [])
+
+
+def card_similarity_features(card: dict[str, Any]) -> tuple[set[str], set[str], set[str], set[str], float]:
+    face = (card.get("card_faces") or [{}])[0]
+    type_line = (face.get("type_line") or card.get("type_line") or "").lower()
+    main_type, _, subtype = type_line.partition("—")
+    types = set(main_type.split()) - {"legendary", "basic", "snow", "world", "ongoing"}
+    colors = set(card.get("colors", face.get("colors", [])))
+    keywords = {keyword.lower() for keyword in card.get("keywords", [])}
+    return types, set(subtype.split()), colors, keywords, float(card.get("cmc") or 0)
+
+
+def card_rules_words(card: dict[str, Any]) -> list[str]:
+    text = card.get("oracle_text") or " ".join(face.get("oracle_text", "") for face in card.get("card_faces", []))
+    # A card referring to itself should not make its rules look different.
+    for name in [card.get("name"), *[face.get("name") for face in card.get("card_faces", [])]]:
+        if name:
+            text = re.sub(re.escape(name), "", text, flags=re.IGNORECASE)
+    forms = {
+        "discards": "discard", "discarded": "discard", "discarding": "discard",
+        "draws": "draw", "drawing": "draw", "drawn": "draw",
+        "destroys": "destroy", "destroyed": "destroy",
+        "exiles": "exile", "exiled": "exile", "exiling": "exile",
+        "counters": "counter", "countered": "counter",
+        "creates": "create", "created": "create",
+        "returns": "return", "returned": "return",
+        "searches": "search", "searched": "search",
+        "gains": "gain", "gained": "gain", "loses": "lose", "lost": "lose",
+        "sacrifices": "sacrifice", "sacrificed": "sacrifice",
+        "reveals": "reveal", "revealed": "reveal",
+        "chooses": "choose", "chosen": "choose",
+        "cards": "card", "creatures": "creature", "lands": "land",
+        "deals": "deal", "dealt": "deal",
+    }
+    return [forms.get(word, word) for word in re.findall(r"[a-z]+", text.lower())]
+
+
+def card_effect_terms(card: dict[str, Any]) -> set[str]:
+    return set(card_rules_words(card)) & {
+        "damage", "draw", "destroy", "exile", "counter", "create", "return",
+        "search", "gain", "discard", "sacrifice", "equip", "enchant", "mana",
+    }
+
+
+def card_function_tags(card: dict[str, Any]) -> set[str]:
+    words = set(card_rules_words(card))
+    tags = set()
+    if {"reveal", "hand", "choose"} <= words:
+        tags.add("choose_from_hand")
+        if "discard" in words:
+            tags.add("chosen_discard")
+    if {"discard", "random"} <= words:
+        tags.add("random_discard")
+    if {"draw", "discard"} <= words:
+        tags.add("draw_and_discard")
+    return tags
+
+
+def card_hand_choice_types(card: dict[str, Any]) -> set[str]:
+    if "choose_from_hand" not in card_function_tags(card):
+        return set()
+    text = card.get("oracle_text") or " ".join(face.get("oracle_text", "") for face in card.get("card_faces", []))
+    choice = re.search(r"\bchoose\b([^.;]*?)\bcard\b", text.lower())
+    if not choice:
+        return set()
+    card_types = {"artifact", "battle", "creature", "enchantment", "instant", "land", "planeswalker", "sorcery"}
+    clause = choice.group(1)
+    excluded = {kind for kind in card_types if re.search(rf"\bnon{kind}\b", clause)}
+    included = {kind for kind in card_types if re.search(rf"\b{kind}\b", clause)}
+    return (included or card_types) - excluded
+
+
+def search_similar_candidates(query: str) -> list[dict[str, Any]]:
+    payload = fetch_json(f"/cards/search?q={quote(query)}&unique=cards&order=name")
+    candidates = list(payload.get("data", []))
+    # Rank the full result set so names late in the alphabet are considered too.
+    while payload.get("has_more") and payload.get("next_page"):
+        time.sleep(0.1)
+        payload = fetch_json_from_url(payload["next_page"])
+        candidates.extend(payload.get("data", []))
+    return candidates
+
+
+def get_similar_cards(card: dict[str, Any]) -> list[dict[str, Any]]:
+    types, subtypes, colors, keywords, mana_value = card_similarity_features(card)
+    type_query = "(" + " or ".join(f"t:{json.dumps(value)}" for value in sorted(types)) + ")"
+    if not types:
+        return []
+    color_query = f"c={''.join(sorted(colors)).lower() or 'c'}"
+    traits = [f"t:{json.dumps(value)}" for value in sorted(subtypes)]
+    traits += [f"keyword:{json.dumps(value)}" for value in sorted(keywords)]
+    effects = card_effect_terms(card)
+    functions = card_function_tags(card)
+    # Functional roles are more precise than a single shared rules word.
+    if "chosen_discard" in functions:
+        traits = ["(o:discard o:hand o:choose)"]
+    elif "choose_from_hand" in functions:
+        traits = ["(o:hand o:choose)"]
+    else:
+        traits += [f"o:{json.dumps(value)}" for value in sorted(effects)]
+    exact_query = f"{type_query} {color_query} cmc={mana_value:g}"
+    close_query = f"{type_query} {color_query} cmc>={max(0, mana_value - 2):g} cmc<={mana_value + 2:g}"
+    if traits:
+        trait_query = " (" + " or ".join(traits) + ")"
+        exact_query += trait_query
+        close_query += trait_query
+    queries = [exact_query, close_query]
+    if traits:
+        queries.append(f"{type_query} {color_query} (" + " or ".join(traits) + ")")
+    queries += [f"{type_query} {color_query}", type_query]
+    candidates: dict[str, dict[str, Any]] = {}
+    selected_name = (card.get("name") or "").casefold()
+    for index, query in enumerate(dict.fromkeys(queries)):
+        if index:
+            time.sleep(0.1)
+        query += f" -!{json.dumps(card.get('name', ''), ensure_ascii=False)}"
+        try:
+            matches = search_similar_candidates(query)
+        except RuntimeError as exc:
+            if isinstance(exc.__cause__, HTTPError) and exc.__cause__.code == 404:
+                continue  # No matches for this tier; try the broader query.
+            raise
+        for candidate in matches:
+            name = (candidate.get("name") or "").casefold()
+            if not candidate.get("id") or not name or name == selected_name:
+                continue
+            if card.get("oracle_id") and candidate.get("oracle_id") == card["oracle_id"]:
+                continue
+            candidates.setdefault(name, candidate)
+        if len(candidates) >= 3:
+            break
+
+    stop_words = {"a", "an", "the", "of", "to", "it", "that", "this", "their", "they",
+                  "you", "your", "and", "or", "from", "for", "with", "then", "may", "as", "is"}
+    rules = set(card_rules_words(card)) - stop_words
+    choice_types = card_hand_choice_types(card)
+
+    def overlap(left: set[str], right: set[str]) -> float:
+        return len(left & right) / len(left | right) if left or right else 0
+
+    def similarity(candidate: dict[str, Any]) -> tuple[float, str]:
+        other_types, other_subtypes, other_colors, other_keywords, other_mana = card_similarity_features(candidate)
+        color_union = colors | other_colors
+        color_match = len(colors & other_colors) / len(color_union) if color_union else 1
+        other_functions = card_function_tags(candidate)
+        score = (4 * overlap(types, other_types) + 6 * overlap(subtypes, other_subtypes)
+                 + 6 * color_match + 8 * overlap(keywords, other_keywords)
+                 + 12 * overlap(effects, card_effect_terms(candidate))
+                 + 24 * overlap(rules, set(card_rules_words(candidate)) - stop_words)
+                 + 20 * overlap(functions, other_functions)
+                 + 24 * overlap(choice_types, card_hand_choice_types(candidate))
+                 - 6 * min(abs(mana_value - other_mana), 6))
+        return -score, candidate.get("name", "")
+
+    return [summarize_card(candidate) for candidate in sorted(candidates.values(), key=similarity)[:3]]
 
 
 def first_available_image(card: dict[str, Any]) -> str | None:
@@ -645,6 +807,54 @@ def build_map_link(address: str) -> str:
     if not normalized_address:
         return ""
     return f"https://www.google.com/maps/search/?api=1&query={quote(normalized_address)}"
+
+
+def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str] | None = None) -> int:
+    actor = actor if actor is not None else current_user_identity()
+    actor_id = (actor.get("user_id") or "").strip().lower()
+    actor_email = (actor.get("email") or "").strip().lower()
+    card_name = (card.get("name") or "").strip()
+    if not actor_id or not actor_email or not card_name or intent not in {"busco", "ofrezco"}:
+        return 0
+
+    target_intent = "ofrezco" if intent == "busco" else "busco"
+    kind = "searched" if intent == "busco" else "offered"
+    users = load_users()
+    users_by_id = {(user.get("user_id") or "").strip().lower(): user for user in users if user.get("user_id")}
+    users_by_email = {(user.get("email") or "").strip().lower(): user for user in users if user.get("email")}
+    recipients = set()
+    now = datetime.now()
+    notifications = []
+    for item in load_saved_cards():
+        if ((item.get("name") or "").strip().casefold() != card_name.casefold()
+                or (item.get("intent") or "").strip().lower() != target_intent
+                or item.get("transaction_completed", False)
+                or int(item.get("quantity", 1) or 0) <= 0):
+            continue
+        owner = users_by_id.get((item.get("user_id") or "").strip().lower())
+        owner = owner or users_by_email.get((item.get("user_email") or "").strip().lower())
+        if not owner:
+            continue
+        receiver_id = (owner.get("user_id") or "").strip().lower()
+        if (not receiver_id or receiver_id == actor_id or receiver_id in recipients
+                or (owner.get("email") or "").strip().lower() == actor_email):
+            continue
+        recipients.add(receiver_id)
+        # One notice per person, card and direction each day, including across editions.
+        key = json.dumps([now.date().isoformat(), actor_id, receiver_id, card_name.casefold(), kind])
+        notifications.append({
+            "notification_id": uuid4().hex,
+            "dedup_key": hashlib.sha256(key.encode("utf-8")).hexdigest(),
+            "receiver_user_id": receiver_id,
+            "actor_user_id": actor_id,
+            "actor_name": actor.get("name") or "Un usuario",
+            "card_id": card.get("id") or card.get("card_id") or item.get("card_id"),
+            "card_name": card_name,
+            "kind": kind,
+            "created_at": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "read": False,
+        })
+    return add_card_notifications(notifications) if notifications else 0
 
 
 def get_unread_message_count() -> int:
@@ -1228,6 +1438,11 @@ def index() -> str:
                     "legalities": first_card.get("legalities") or {},
                 }
             append_search_log(query, metadata)
+            exact_matches = [card for card in cards if (card.get("name") or "").strip().casefold() == query.casefold()]
+            if len(cards) == 1:
+                notify_card_matches(cards[0], "busco")
+            elif exact_matches:
+                notify_card_matches(exact_matches[0], "busco")
             if len(cards) == 1:
                 return redirect(url_for("card_detail", card_id=cards[0].get("id")))
             state.results = [summarize_card(card) for card in cards]
@@ -1873,6 +2088,17 @@ def save_user_reference(user_id: str) -> Any:
     return redirect(url_for("user_profile_page", user_id=target_user_id))
 
 
+@app.route("/notifications", methods=["GET"])
+def notifications_page() -> Any:
+    if not is_authenticated_user():
+        flash("Debes iniciar sesion para ver tus notificaciones.", "error")
+        return redirect(url_for("register_page"))
+    user_id = current_user_identity()["user_id"]
+    notifications = load_card_notifications(user_id)
+    mark_card_notifications_read(user_id)
+    return render_template("notifications_page.html", notifications=notifications, search_query="")
+
+
 @app.route("/messages", methods=["GET"])
 def messages_page() -> Any:
     if not is_authenticated_user():
@@ -2137,6 +2363,8 @@ def card_detail(card_id: str) -> str:
         editions = get_card_editions(selected_card_raw, selected_id)
         viewer_id = current_user_identity().get("user_id") if is_authenticated_user() else ""
         saved_status = find_saved_status(selected_card_raw.get("name", ""), viewer_id)
+        if request.args.get("from_search") == "1":
+            notify_card_matches(selected_card_raw, "busco")
         return render_template(
             "card_page.html",
             card=card,
@@ -2154,6 +2382,16 @@ def card_detail(card_id: str) -> str:
             error=str(exc),
             search_query="",
         ), 502
+
+
+@app.route("/card/<card_id>/recommendations", methods=["GET"])
+def card_recommendations(card_id: str) -> Any:
+    try:
+        similar_cards = get_similar_cards(get_card(card_id))
+        return render_template("similar_cards.html", similar_cards=similar_cards)
+    except RuntimeError:
+        app.logger.warning("Could not load recommendations for card %s", card_id)
+        return render_template("similar_cards.html", similar_cards=[], unavailable=True), 502
 
 
 @app.route("/card/<card_id>/save", methods=["POST"])
@@ -2196,6 +2434,7 @@ def save_card_entry(card_id: str) -> Any:
             }
         )
         save_saved_cards(saved_cards)
+        notify_card_matches(selected_card_raw, intent, owner)
         flash("Carta guardada correctamente.", "success")
     except RuntimeError as exc:
         flash(str(exc), "error")
@@ -2259,6 +2498,10 @@ def update_saved_card(item_index: int) -> Any:
         "created_at": current_item.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     save_saved_cards(saved_cards)
+    if (not saved_cards[item_index]["transaction_completed"]
+            and ((current_item.get("name") or "").casefold(), current_item.get("intent"))
+            != ((selected_card_raw.get("name") or "").casefold(), intent)):
+        notify_card_matches(selected_card_raw, intent, owner)
     flash("Registro actualizado.", "success")
     return redirect(url_for("saved_cards_page"))
 
@@ -2281,6 +2524,12 @@ def toggle_saved_transaction(item_index: int) -> Any:
 
     current_item["transaction_completed"] = not bool(current_item.get("transaction_completed", False))
     save_saved_cards(saved_cards)
+    if not current_item["transaction_completed"]:
+        notify_card_matches(current_item, current_item.get("intent", ""), {
+            "user_id": current_item.get("user_id", ""),
+            "name": current_item.get("user_name", ""),
+            "email": current_item.get("user_email", ""),
+        })
     message = "Transaccion marcada como terminada." if current_item["transaction_completed"] else "Publicacion reactivada."
     flash(message, "success")
     return redirect(url_for("saved_cards_page"))

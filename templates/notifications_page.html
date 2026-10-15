@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Notificaciones{% endblock %}
+{% block banner_title %}Coincidencias de cartas{% endblock %}
+{% block banner_text %}Entérate cuando alguien busca una carta que ofreces o publica una que estás buscando.{% endblock %}
+
+{% block content %}
+  <section class="saved-panel">
+    <h1>Notificaciones</h1>
+    {% if notifications %}
+      <div class="messages-thread-list">
+        {% for item in notifications %}
+          <article class="saved-card">
+            {% if not item.read %}<p class="eyebrow">Nueva coincidencia</p>{% endif %}
+            <h2>{{ item.card_name }}</h2>
+            <p>
+              <a class="saved-link" href="{{ url_for('user_profile_page', user_id=item.actor_user_id) }}">{{ item.actor_name }}</a>
+              {% if item.kind == 'searched' %}
+                está buscando una carta que tienes ofrecida.
+              {% else %}
+                ofrece una carta que tienes en tu listado de búsqueda.
+              {% endif %}
+            </p>
+            <p class="muted">{{ item.created_at }}</p>
+            {% if item.card_id %}
+              <a class="detail-link" href="{{ url_for('card_detail', card_id=item.card_id) }}">Ver carta</a>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="message">Todavía no tienes notificaciones de coincidencias.</p>
+    {% endif %}
+  </section>
+{% endblock %}

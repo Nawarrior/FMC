@@ -647,6 +647,53 @@ h1 {
   gap: 24px;
 }
 
+.similar-cards-section {
+  margin-top: 36px;
+}
+
+.similar-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.similar-card {
+  display: block;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.similar-card:hover,
+.similar-card:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+
+.similar-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 488 / 680;
+  object-fit: contain;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.similar-card h3 {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.similar-card p:last-child {
+  margin-bottom: 0;
+}
+
 .detail-title-row {
   display: flex;
   flex-wrap: wrap;
@@ -2190,6 +2237,7 @@ h1 {
   .search-form,
   .result-card,
   .detail-grid,
+  .similar-cards-grid,
   .arcana-hero,
   .trade-grid,
   .saved-filters,

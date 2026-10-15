@@ -73,7 +73,7 @@
             {% if card.power and card.toughness %}
               <p><strong>P/T:</strong> {{ card.power }}/{{ card.toughness }}</p>
             {% endif %}
-            <a class="detail-link" href="{{ url_for('card_detail', card_id=card.id) }}">Ver detalle</a>
+            <a class="detail-link" href="{{ url_for('card_detail', card_id=card.id, from_search=1) }}">Ver detalle</a>
           </div>
         </article>
       {% else %}

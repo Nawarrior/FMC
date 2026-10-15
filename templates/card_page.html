@@ -207,6 +207,13 @@
           </section>
         </article>
       </section>
+      <section class="similar-cards-section" aria-labelledby="similar-cards-title"
+               data-similar-cards data-recommendations-url="{{ url_for('card_recommendations', card_id=card.id) }}">
+        <h2 id="similar-cards-title">También te podría interesar</h2>
+        <div data-similar-cards-content aria-live="polite" aria-busy="true">
+          <p class="muted">Buscando cartas similares…</p>
+        </div>
+      </section>
     {% endif %}
   </section>
 
@@ -235,6 +242,22 @@
 
 {% block extra_scripts %}
   <script>
+    const loadSimilarCards = async () => {
+      const section = document.querySelector("[data-similar-cards]");
+      const content = section?.querySelector("[data-similar-cards-content]");
+      if (!content) return;
+      try {
+        const response = await fetch(section.dataset.recommendationsUrl, { headers: { "Accept": "text/html" } });
+        if (!response.ok) throw new Error("Recommendations unavailable");
+        content.innerHTML = await response.text();
+      } catch (error) {
+        content.textContent = "No pudimos cargar las recomendaciones. Intenta nuevamente más tarde.";
+      } finally {
+        content.setAttribute("aria-busy", "false");
+      }
+    };
+    loadSimilarCards();
+
     (() => {
       const contactModal = document.getElementById("card-contact-modal");
       if (contactModal) {
@@ -314,6 +337,12 @@
           }
 
           currentGrid.replaceWith(nextGrid);
+          const currentRecommendations = document.querySelector("[data-similar-cards]");
+          const nextRecommendations = nextDocument.querySelector("[data-similar-cards]");
+          if (currentRecommendations && nextRecommendations) {
+            currentRecommendations.replaceWith(nextRecommendations);
+            loadSimilarCards();
+          }
           window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
           activePicker = null;
           document.querySelector("[data-edition-picker-trigger]")?.focus({ preventScroll: true });

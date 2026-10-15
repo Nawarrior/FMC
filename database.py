@@ -120,6 +120,21 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
         },
         "json_fields": set(),
     },
+    "card_notifications": {
+        "columns": {
+            "notification_id": "TEXT",
+            "dedup_key": "TEXT",
+            "receiver_user_id": "TEXT",
+            "actor_user_id": "TEXT",
+            "actor_name": "TEXT",
+            "card_id": "TEXT",
+            "card_name": "TEXT",
+            "kind": "TEXT",
+            "created_at": "TEXT",
+            "read": "INTEGER",
+        },
+        "json_fields": set(),
+    },
     "search_log": {
         "columns": {
             "search_term": "TEXT",
@@ -160,6 +175,8 @@ INDEX_DEFINITIONS = (
     ("idx_saved_cards_card_id", "saved_cards", ("card_id",), False),
     ("idx_messages_receiver_user_id", "messages", ("receiver_user_id",), False),
     ("idx_messages_sender_user_id", "messages", ("sender_user_id",), False),
+    ("idx_card_notifications_receiver", "card_notifications", ("receiver_user_id", "read"), False),
+    ("idx_card_notifications_dedup", "card_notifications", ("dedup_key",), True),
     ("idx_password_reset_tokens_token_hash", "password_reset_tokens", ("token_hash",), False),
     ("idx_password_reset_requests_email", "password_reset_requests", ("email",), False),
 )
@@ -209,6 +226,41 @@ def load_collection(table_name: str) -> list[dict[str, Any]]:
         ).fetchall()
 
     return [_row_to_item(table_name, row) for row in rows]
+
+
+def add_card_notifications(items: list[dict[str, Any]]) -> int:
+    columns = tuple(TABLE_DEFINITIONS["card_notifications"]["columns"])
+    with get_connection() as connection:
+        position = connection.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM card_notifications").fetchone()[0]
+        before = connection.total_changes
+        connection.executemany(
+            f"INSERT OR IGNORE INTO card_notifications (position, {', '.join(columns)}) "
+            f"VALUES ({', '.join('?' for _ in range(len(columns) + 1))})",
+            [(position + index, *(_serialize_value("card_notifications", column, item.get(column)) for column in columns))
+             for index, item in enumerate(items)],
+        )
+        return connection.total_changes - before
+
+
+def load_card_notifications(user_id: str) -> list[dict[str, Any]]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            "SELECT * FROM card_notifications WHERE receiver_user_id = ? ORDER BY created_at DESC, id DESC",
+            (user_id,),
+        ).fetchall()
+    return [_row_to_item("card_notifications", row) for row in rows]
+
+
+def count_unread_card_notifications(user_id: str) -> int:
+    with get_connection() as connection:
+        return connection.execute(
+            "SELECT COUNT(*) FROM card_notifications WHERE receiver_user_id = ? AND read = 0", (user_id,),
+        ).fetchone()[0]
+
+
+def mark_card_notifications_read(user_id: str) -> None:
+    with get_connection() as connection:
+        connection.execute("UPDATE card_notifications SET read = 1 WHERE receiver_user_id = ? AND read = 0", (user_id,))
 
 
 def save_collection(table_name: str, items: list[dict[str, Any]]) -> None:

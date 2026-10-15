@@ -1,0 +1,18 @@
+{% if similar_cards %}
+  <div class="similar-cards-grid">
+    {% for similar in similar_cards %}
+      <a class="similar-card" href="{{ url_for('card_detail', card_id=similar.id) }}">
+        {% if similar.image_url %}
+          <img src="{{ similar.image_url }}" alt="Imagen de {{ similar.name }}" loading="lazy" width="488" height="680">
+        {% else %}
+          <div class="image-fallback">Sin imagen disponible</div>
+        {% endif %}
+        <h3>{{ similar.name }}</h3>
+        <p class="muted">{{ similar.type_line }}</p>
+        {% if similar.mana_cost %}<p>{{ similar.mana_cost }}</p>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">{{ 'No pudimos cargar las recomendaciones. Intenta nuevamente más tarde.' if unavailable else 'No encontramos cartas similares disponibles.' }}</p>
+{% endif %}
