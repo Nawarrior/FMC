@@ -23,14 +23,14 @@ Luego abre `http://127.0.0.1:5000`.
 
 ## Base de datos
 
-La aplicacion usa SQLite para sus datos propios: usuarios, cartas guardadas, productos, carrito, tiendas, referencias, mensajes e historial de busquedas. Por defecto usa la base `C:\Proyectos\sqlite-tools-win-x64-3540000\FMC.db`.
+La aplicacion usa SQLite para sus datos propios: usuarios, cartas guardadas, productos, carrito, tiendas, referencias, mensajes e historial de busquedas. La ruta predeterminada se define en `database.py` y puede cambiarse mediante `DATABASE_PATH`.
 
 En el primer arranque migra automaticamente los datos existentes desde los archivos JSON locales si las tablas estan vacias. La busqueda y el detalle de cartas siguen consultando siempre la API de Scryfall.
 
 Para usar otra ruta de base de datos:
 
 ```powershell
-$env:DATABASE_PATH = "C:\ruta\a\fmc.db"
+$env:DATABASE_PATH = "instance/fmc.db"
 python app.py
 ```
 
@@ -74,7 +74,26 @@ Los usuarios con sesion iniciada reciben avisos dentro del sitio, en **Notificac
 
 ## Notificaciones por correo
 
-Los mensajes nuevos y las respuestas envian un aviso al correo del usuario receptor. Configura SMTP en la misma ventana de PowerShell antes de iniciar Flask:
+Los mensajes nuevos, las respuestas, la recuperacion de clave y las coincidencias de cartas usan la misma configuracion SMTP. La aplicacion carga automaticamente el archivo privado `.env` de la carpeta del proyecto, tambien cuando se ejecuta mediante WSGI en PythonAnywhere.
+
+Para configurar Gmail sin mostrar la clave en la consola:
+
+```bash
+python deployment/configure_email.py
+python deployment/check_email.py
+```
+
+El asistente solicita el correo remitente y una contrasena de aplicacion de Google. Esta requiere verificacion en dos pasos. Guarda los datos en `.env`, excluido de Git. El comprobador verifica conexion y autenticacion sin enviar correos. Para enviar una prueba a una direccion propia:
+
+```bash
+python deployment/check_email.py --to tu-correo@gmail.com
+```
+
+En PythonAnywhere, pulsa **Web > Reload** despues de configurar. No basta con definir variables en una consola Bash: la aplicacion web necesita cargar su propia configuracion. Revisa `deployment/PYTHONANYWHERE.md` para actualizar e instalar las dependencias.
+
+Las coincidencias mantienen el aviso dentro del sitio si falla SMTP. Si se repite la coincidencia, se reintenta el correo pendiente; los envios confirmados se deduplican junto con el aviso diario.
+
+Tambien puedes configurar SMTP mediante variables de entorno, por ejemplo en PowerShell:
 
 ```powershell
 $env:SMTP_HOST = "smtp.gmail.com"

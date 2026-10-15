@@ -61,7 +61,38 @@ La app quedara disponible en:
 https://TU_USUARIO_PYTHONANYWHERE.pythonanywhere.com
 ```
 
-## 5. Notas
+## 5. Correo con Gmail
+
+1. Activa la verificacion en dos pasos en la cuenta Gmail que usara el sitio como remitente.
+2. Genera una contrasena de aplicacion en https://myaccount.google.com/apppasswords. No uses la contrasena normal de Google.
+3. En una consola Bash de PythonAnywhere, ejecuta:
+
+```bash
+cd ~/FMC
+git pull --ff-only origin main
+source .venv/bin/activate
+pip install -r requirements.txt
+python deployment/configure_email.py
+```
+
+4. Acepta `smtp.gmail.com` y el puerto `587`. Ingresa tu correo y la contrasena de aplicacion cuando el asistente lo solicite. La clave no se muestra ni se guarda en el historial de comandos. El asistente crea el archivo privado `.env`, ignorado por Git; la app lo carga al arrancar, sin modificar el WSGI instalado.
+5. Comprueba la conexion sin enviar correos:
+
+```bash
+python deployment/check_email.py
+```
+
+6. Para enviar una prueba a tu propio correo:
+
+```bash
+python deployment/check_email.py --to tu-correo@gmail.com
+```
+
+7. Pulsa **Web > Reload**. Los mensajes, recuperaciones de clave y nuevas coincidencias utilizaran esta cuenta. Las columnas de seguimiento del envio se agregan automaticamente a la base de datos.
+
+Si la autenticacion falla, revisa que uses una contrasena de aplicacion vigente. Si hay un fallo de conexion, comprueba host, puerto y restricciones de red del plan. El comprobador no muestra contrasenas y distingue esos errores.
+
+## 6. Notas
 
 - El buscador de cartas sigue consultando Scryfall por API.
 - La cuenta gratuita de PythonAnywhere expira la web app si no se renueva periodicamente desde el panel.

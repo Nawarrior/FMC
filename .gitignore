@@ -2,6 +2,9 @@ test-credentials.local.md
 __pycache__/
 *.py[cod]
 .venv/
+.env
+.env.*
+!.env.example
 
 # Local application data; may contain personal information or message content.
 busquedas.json

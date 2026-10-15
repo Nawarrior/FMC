@@ -130,6 +130,8 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
             "card_id": "TEXT",
             "card_name": "TEXT",
             "kind": "TEXT",
+            "email_state": "TEXT",
+            "email_claimed_at": "REAL",
             "created_at": "TEXT",
             "read": "INTEGER",
         },
@@ -240,6 +242,27 @@ def add_card_notifications(items: list[dict[str, Any]]) -> int:
              for index, item in enumerate(items)],
         )
         return connection.total_changes - before
+
+
+def claim_card_notification_email(dedup_key: str) -> bool:
+    import time
+    now = time.time()
+    with get_connection() as connection:
+        result = connection.execute(
+            "UPDATE card_notifications SET email_state = 'sending', email_claimed_at = ? "
+            "WHERE dedup_key = ? AND (COALESCE(email_state, 'pending') = 'pending' "
+            "OR (email_state = 'sending' AND COALESCE(email_claimed_at, 0) < ?))",
+            (now, dedup_key, now - 300),
+        )
+        return result.rowcount == 1
+
+
+def finish_card_notification_email(dedup_key: str, sent: bool) -> None:
+    with get_connection() as connection:
+        connection.execute(
+            "UPDATE card_notifications SET email_state = ?, email_claimed_at = NULL WHERE dedup_key = ?",
+            ("sent" if sent else "pending", dedup_key),
+        )
 
 
 def load_card_notifications(user_id: str) -> list[dict[str, Any]]:

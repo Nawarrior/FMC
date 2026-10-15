@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from email.message import EmailMessage
 import hashlib
 import os
 from pathlib import Path
 import re
 import secrets
 import smtplib
-import ssl
 from typing import Any
 from uuid import uuid4
 from urllib.error import HTTPError, URLError
@@ -22,8 +20,10 @@ from authlib.integrations.flask_client import OAuth
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from mailer import send_email
 from database import (
-    add_card_notifications, count_unread_card_notifications, initialize_database,
+    add_card_notifications, claim_card_notification_email, count_unread_card_notifications,
+    finish_card_notification_email, initialize_database,
     load_card_notifications, load_collection, mark_card_notifications_read,
     migrate_json_files_to_db, save_collection,
 )
@@ -854,7 +854,14 @@ def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str]
             "created_at": now.strftime("%Y-%m-%d %H:%M:%S"),
             "read": False,
         })
-    return add_card_notifications(notifications) if notifications else 0
+    added = add_card_notifications(notifications) if notifications else 0
+    for notification in notifications:
+        key = notification["dedup_key"]
+        if claim_card_notification_email(key):
+            receiver = users_by_id.get(notification["receiver_user_id"], {})
+            sent = notify_card_match_recipient(receiver, actor, card_name, kind)
+            finish_card_notification_email(key, sent)
+    return added
 
 
 def get_unread_message_count() -> int:
@@ -906,57 +913,16 @@ def build_message_threads() -> list[dict[str, Any]]:
 
 
 def send_message_notification(receiver: dict[str, Any], sender: dict[str, str], card_name: str = "") -> bool:
-    smtp_host = os.environ.get("SMTP_HOST", "").strip()
-    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
-    smtp_password = os.environ.get("SMTP_PASSWORD", "")
-    from_email = os.environ.get("SMTP_FROM_EMAIL", "").strip() or smtp_username
-    receiver_email = (receiver.get("email") or "").strip()
-
-    if not smtp_host or not from_email or not receiver_email:
-        return False
-    if bool(smtp_username) != bool(smtp_password):
-        raise ValueError("SMTP_USERNAME y SMTP_PASSWORD deben configurarse juntos.")
-
-    try:
-        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    except ValueError as exc:
-        raise ValueError("SMTP_PORT debe ser un numero valido.") from exc
-
-    use_ssl = os.environ.get("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"}
-    use_starttls = os.environ.get("SMTP_USE_STARTTLS", "true").strip().lower() in {"1", "true", "yes"}
     app_base_url = os.environ.get("APP_BASE_URL", "").rstrip("/")
     messages_url = f"{app_base_url}{url_for('messages_page')}" if app_base_url else url_for("messages_page", _external=True)
     card_context = f" sobre {card_name}" if card_name else ""
-
-    notification = EmailMessage()
-    notification["Subject"] = "Nuevo mensaje en Findmycard"
-    notification["From"] = from_email
-    notification["To"] = receiver_email
-    notification.set_content(
+    return send_email(
+        receiver.get("email") or "", "Nuevo mensaje en Findmycard",
         f"Hola {receiver.get('name') or 'usuario'},\n\n"
         f"{sender.get('name') or 'Un usuario'} te envio un mensaje{card_context} en Findmycard.\n"
         "Inicia sesion para leerlo y responder.\n\n"
-        f"{messages_url}\n"
+        f"{messages_url}\n",
     )
-
-    if use_ssl:
-        smtp_connection = smtplib.SMTP_SSL(
-            smtp_host,
-            smtp_port,
-            timeout=15,
-            context=ssl.create_default_context(),
-        )
-    else:
-        smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
-
-    with smtp_connection as smtp:
-        if not use_ssl and use_starttls:
-            smtp.starttls(context=ssl.create_default_context())
-        if smtp_username:
-            smtp.login(smtp_username, smtp_password)
-        smtp.send_message(notification)
-
-    return True
 
 
 def notify_message_recipient(receiver: dict[str, Any], sender: dict[str, str], card_name: str = "") -> bool:
@@ -967,56 +933,32 @@ def notify_message_recipient(receiver: dict[str, Any], sender: dict[str, str], c
         return False
 
 
-def send_password_reset_email(user: dict[str, Any], reset_url: str) -> bool:
-    smtp_host = os.environ.get("SMTP_HOST", "").strip()
-    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
-    smtp_password = os.environ.get("SMTP_PASSWORD", "")
-    from_email = os.environ.get("SMTP_FROM_EMAIL", "").strip() or smtp_username
-    receiver_email = (user.get("email") or "").strip()
-
-    if not smtp_host or not from_email or not receiver_email:
-        return False
-    if bool(smtp_username) != bool(smtp_password):
-        raise ValueError("SMTP_USERNAME y SMTP_PASSWORD deben configurarse juntos.")
-
+def notify_card_match_recipient(receiver: dict[str, Any], actor: dict[str, str], card_name: str, kind: str) -> bool:
     try:
-        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    except ValueError as exc:
-        raise ValueError("SMTP_PORT debe ser un numero valido.") from exc
+        base_url = os.environ.get("APP_BASE_URL", "").rstrip("/")
+        path = url_for("notifications_page") if base_url else url_for("notifications_page", _external=True)
+        action = "busca una carta que tienes ofrecida" if kind == "searched" else "ofrece una carta que estas buscando"
+        return send_email(
+            receiver.get("email") or "", f"Coincidencia de carta: {card_name}",
+            f"Hola {receiver.get('name') or 'usuario'},\n\n"
+            f"{actor.get('name') or 'Un usuario'} {action}: {card_name}.\n"
+            "Inicia sesion para revisar la coincidencia.\n\n"
+            f"{base_url}{path}\n",
+        )
+    except (OSError, smtplib.SMTPException, ValueError):
+        app.logger.exception("No se pudo enviar el correo de coincidencia de carta.")
+        return False
 
-    use_ssl = os.environ.get("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"}
-    use_starttls = os.environ.get("SMTP_USE_STARTTLS", "true").strip().lower() in {"1", "true", "yes"}
 
-    message = EmailMessage()
-    message["Subject"] = "Recupera tu clave de Findmycard"
-    message["From"] = from_email
-    message["To"] = receiver_email
-    message.set_content(
+def send_password_reset_email(user: dict[str, Any], reset_url: str) -> bool:
+    return send_email(
+        user.get("email") or "", "Recupera tu clave de Findmycard",
         f"Hola {user.get('name') or 'usuario'},\n\n"
         "Recibimos una solicitud para cambiar tu clave de Findmycard.\n"
         f"Este enlace vence en {PASSWORD_RESET_EXPIRATION_HOURS} hora(s):\n\n"
         f"{reset_url}\n\n"
-        "Si no pediste este cambio, puedes ignorar este correo.\n"
+        "Si no pediste este cambio, puedes ignorar este correo.\n",
     )
-
-    if use_ssl:
-        smtp_connection = smtplib.SMTP_SSL(
-            smtp_host,
-            smtp_port,
-            timeout=15,
-            context=ssl.create_default_context(),
-        )
-    else:
-        smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
-
-    with smtp_connection as smtp:
-        if not use_ssl and use_starttls:
-            smtp.starttls(context=ssl.create_default_context())
-        if smtp_username:
-            smtp.login(smtp_username, smtp_password)
-        smtp.send_message(message)
-
-    return True
 
 
 def notify_password_reset(user: dict[str, Any], reset_url: str) -> bool:
