@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/keyrune@latest/css/keyrune.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mana-font@latest/css/mana.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20261012-menu2">
 </head>
 <body>
   <header class="site-header">
@@ -20,7 +20,7 @@
         </a>
         <button class="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
           <span class="mobile-menu-bars" aria-hidden="true"></span>
-          <span class="sr-only">Abrir menu</span>
+          <span class="mobile-menu-label">Menu</span>
         </button>
         <div id="site-menu" class="top-actions" data-site-menu>
           <a class="nav-link" href="{{ url_for('index') }}">Inicio</a>
@@ -116,6 +116,7 @@
       if (!toggle || !menu) {
         return;
       }
+      document.querySelector(".site-header")?.classList.add("menu-ready");
 
       toggle.addEventListener("click", () => {
         const isOpen = menu.classList.toggle("is-open");
