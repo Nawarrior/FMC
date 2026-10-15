@@ -74,7 +74,9 @@ Los usuarios con sesion iniciada reciben avisos dentro del sitio, en **Notificac
 
 ## Notificaciones por correo
 
-Los mensajes nuevos, las respuestas, la recuperacion de clave y las coincidencias de cartas usan la misma configuracion SMTP. La aplicacion carga automaticamente el archivo privado `.env` de la carpeta del proyecto, tambien cuando se ejecuta mediante WSGI en PythonAnywhere.
+Los mensajes nuevos, las respuestas y las coincidencias de cartas se agrupan en un resumen por usuario a las **09:30 y 16:30 de America/Santiago**. Solo incluye avisos pendientes: una coincidencia ya enviada no se vuelve a enviar aunque se repita otro dia. Si no hay novedades, no se envia correo. La recuperacion de clave se envia inmediatamente.
+
+La aplicacion carga automaticamente el archivo privado `.env` de la carpeta del proyecto, tambien cuando se ejecuta mediante WSGI en PythonAnywhere. Configura el programador externo siguiendo `deployment/EMAIL_DIGESTS.md`; el codigo por si solo no activa el horario en produccion.
 
 Para configurar Gmail sin mostrar la clave en la consola:
 
@@ -91,7 +93,7 @@ python deployment/check_email.py --to tu-correo@gmail.com
 
 En PythonAnywhere, pulsa **Web > Reload** despues de configurar. No basta con definir variables en una consola Bash: la aplicacion web necesita cargar su propia configuracion. Revisa `deployment/PYTHONANYWHERE.md` para actualizar e instalar las dependencias.
 
-Las coincidencias mantienen el aviso dentro del sitio si falla SMTP. Si se repite la coincidencia, se reintenta el correo pendiente; los envios confirmados se deduplican junto con el aviso diario.
+Las coincidencias mantienen el aviso dentro del sitio si falla SMTP. Los correos pendientes se reintentan en una ejecucion posterior del resumen. Los mensajes que ya se leyeron en el sitio no se incluyen en el resumen.
 
 Tambien puedes configurar SMTP mediante variables de entorno, por ejemplo en PowerShell:
 

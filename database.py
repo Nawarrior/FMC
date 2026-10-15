@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_DATABASE_PATH = Path(r"C:\Proyectos\sqlite-tools-win-x64-3540000\FMC.db")
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent / "instance" / "fmc.db"
 DATABASE_PATH = Path(os.environ.get("DATABASE_PATH") or DEFAULT_DATABASE_PATH)
 
 
@@ -117,6 +117,8 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
             "text": "TEXT",
             "created_at": "TEXT",
             "read": "INTEGER",
+            "email_state": "TEXT",
+            "email_batch_id": "TEXT",
         },
         "json_fields": set(),
     },
@@ -132,8 +134,16 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
             "kind": "TEXT",
             "email_state": "TEXT",
             "email_claimed_at": "REAL",
+            "email_batch_id": "TEXT",
             "created_at": "TEXT",
             "read": "INTEGER",
+        },
+        "json_fields": set(),
+    },
+    "email_digest_batches": {
+        "columns": {
+            "batch_id": "TEXT", "receiver_user_id": "TEXT", "slot_key": "TEXT",
+            "state": "TEXT", "claimed_at": "REAL", "sent_at": "TEXT",
         },
         "json_fields": set(),
     },
@@ -179,6 +189,7 @@ INDEX_DEFINITIONS = (
     ("idx_messages_sender_user_id", "messages", ("sender_user_id",), False),
     ("idx_card_notifications_receiver", "card_notifications", ("receiver_user_id", "read"), False),
     ("idx_card_notifications_dedup", "card_notifications", ("dedup_key",), True),
+    ("idx_email_digest_slot", "email_digest_batches", ("receiver_user_id", "slot_key"), True),
     ("idx_password_reset_tokens_token_hash", "password_reset_tokens", ("token_hash",), False),
     ("idx_password_reset_requests_email", "password_reset_requests", ("email",), False),
 )
@@ -242,27 +253,6 @@ def add_card_notifications(items: list[dict[str, Any]]) -> int:
              for index, item in enumerate(items)],
         )
         return connection.total_changes - before
-
-
-def claim_card_notification_email(dedup_key: str) -> bool:
-    import time
-    now = time.time()
-    with get_connection() as connection:
-        result = connection.execute(
-            "UPDATE card_notifications SET email_state = 'sending', email_claimed_at = ? "
-            "WHERE dedup_key = ? AND (COALESCE(email_state, 'pending') = 'pending' "
-            "OR (email_state = 'sending' AND COALESCE(email_claimed_at, 0) < ?))",
-            (now, dedup_key, now - 300),
-        )
-        return result.rowcount == 1
-
-
-def finish_card_notification_email(dedup_key: str, sent: bool) -> None:
-    with get_connection() as connection:
-        connection.execute(
-            "UPDATE card_notifications SET email_state = ?, email_claimed_at = NULL WHERE dedup_key = ?",
-            ("sent" if sent else "pending", dedup_key),
-        )
 
 
 def load_card_notifications(user_id: str) -> list[dict[str, Any]]:

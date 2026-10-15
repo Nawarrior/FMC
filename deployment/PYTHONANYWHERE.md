@@ -88,7 +88,7 @@ python deployment/check_email.py
 python deployment/check_email.py --to tu-correo@gmail.com
 ```
 
-7. Pulsa **Web > Reload**. Los mensajes, recuperaciones de clave y nuevas coincidencias utilizaran esta cuenta. Las columnas de seguimiento del envio se agregan automaticamente a la base de datos.
+7. Pulsa **Web > Reload**. La recuperacion de clave utilizara esta cuenta inmediatamente. Para enviar los resumenes de mensajes y coincidencias a las 09:30 y 16:30 de Chile, activa el programador siguiendo `deployment/EMAIL_DIGESTS.md`. Las columnas de seguimiento del envio se agregan automaticamente a la base de datos.
 
 Si la autenticacion falla, revisa que uses una contrasena de aplicacion vigente. Si hay un fallo de conexion, comprueba host, puerto y restricciones de red del plan. El comprobador no muestra contrasenas y distingue esos errores.
 

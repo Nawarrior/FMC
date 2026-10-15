@@ -1,0 +1,34 @@
+name: Resumen de correos
+
+on:
+  schedule:
+    - cron: '30 9,16 * * *'
+      timezone: America/Santiago
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: email-digests
+  cancel-in-progress: false
+
+jobs:
+  deliver:
+    if: github.repository == 'Nawarrior/FMC'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Procesar avisos pendientes
+        env:
+          DIGEST_SCHEDULER_TOKEN: ${{ secrets.DIGEST_SCHEDULER_TOKEN }}
+        run: |
+          if [ -z "$DIGEST_SCHEDULER_TOKEN" ]; then
+            echo "Falta configurar el secret DIGEST_SCHEDULER_TOKEN."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 15 --max-time 270 \
+            --retry 2 --retry-delay 10 \
+            -X POST \
+            -H "Authorization: Bearer $DIGEST_SCHEDULER_TOKEN" \
+            https://nawarrior.pythonanywhere.com/internal/email-digest

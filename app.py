@@ -22,8 +22,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from mailer import send_email
 from database import (
-    add_card_notifications, claim_card_notification_email, count_unread_card_notifications,
-    finish_card_notification_email, initialize_database,
+    add_card_notifications, count_unread_card_notifications, initialize_database,
     load_card_notifications, load_collection, mark_card_notifications_read,
     migrate_json_files_to_db, save_collection,
 )
@@ -129,6 +128,8 @@ def csrf_token() -> str:
 def validate_csrf_token() -> None:
     if request.method != "POST":
         return
+    if request.endpoint == "email_digest_trigger":
+        return  # This endpoint authenticates with a private scheduler token.
 
     expected_token = session.get("_csrf_token")
     submitted_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
@@ -854,14 +855,7 @@ def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str]
             "created_at": now.strftime("%Y-%m-%d %H:%M:%S"),
             "read": False,
         })
-    added = add_card_notifications(notifications) if notifications else 0
-    for notification in notifications:
-        key = notification["dedup_key"]
-        if claim_card_notification_email(key):
-            receiver = users_by_id.get(notification["receiver_user_id"], {})
-            sent = notify_card_match_recipient(receiver, actor, card_name, kind)
-            finish_card_notification_email(key, sent)
-    return added
+    return add_card_notifications(notifications) if notifications else 0
 
 
 def get_unread_message_count() -> int:
@@ -912,44 +906,6 @@ def build_message_threads() -> list[dict[str, Any]]:
     return ordered_threads
 
 
-def send_message_notification(receiver: dict[str, Any], sender: dict[str, str], card_name: str = "") -> bool:
-    app_base_url = os.environ.get("APP_BASE_URL", "").rstrip("/")
-    messages_url = f"{app_base_url}{url_for('messages_page')}" if app_base_url else url_for("messages_page", _external=True)
-    card_context = f" sobre {card_name}" if card_name else ""
-    return send_email(
-        receiver.get("email") or "", "Nuevo mensaje en Findmycard",
-        f"Hola {receiver.get('name') or 'usuario'},\n\n"
-        f"{sender.get('name') or 'Un usuario'} te envio un mensaje{card_context} en Findmycard.\n"
-        "Inicia sesion para leerlo y responder.\n\n"
-        f"{messages_url}\n",
-    )
-
-
-def notify_message_recipient(receiver: dict[str, Any], sender: dict[str, str], card_name: str = "") -> bool:
-    try:
-        return send_message_notification(receiver, sender, card_name)
-    except (OSError, smtplib.SMTPException, ValueError):
-        app.logger.exception("No se pudo enviar la notificacion de mensaje por correo.")
-        return False
-
-
-def notify_card_match_recipient(receiver: dict[str, Any], actor: dict[str, str], card_name: str, kind: str) -> bool:
-    try:
-        base_url = os.environ.get("APP_BASE_URL", "").rstrip("/")
-        path = url_for("notifications_page") if base_url else url_for("notifications_page", _external=True)
-        action = "busca una carta que tienes ofrecida" if kind == "searched" else "ofrece una carta que estas buscando"
-        return send_email(
-            receiver.get("email") or "", f"Coincidencia de carta: {card_name}",
-            f"Hola {receiver.get('name') or 'usuario'},\n\n"
-            f"{actor.get('name') or 'Un usuario'} {action}: {card_name}.\n"
-            "Inicia sesion para revisar la coincidencia.\n\n"
-            f"{base_url}{path}\n",
-        )
-    except (OSError, smtplib.SMTPException, ValueError):
-        app.logger.exception("No se pudo enviar el correo de coincidencia de carta.")
-        return False
-
-
 def send_password_reset_email(user: dict[str, Any], reset_url: str) -> bool:
     return send_email(
         user.get("email") or "", "Recupera tu clave de Findmycard",
@@ -967,14 +923,6 @@ def notify_password_reset(user: dict[str, Any], reset_url: str) -> bool:
     except (OSError, smtplib.SMTPException, ValueError):
         app.logger.exception("No se pudo enviar el correo de recuperacion de clave.")
         return False
-
-
-def flash_message_delivery(notification_sent: bool) -> None:
-    flash("Mensaje enviado.", "success")
-    if notification_sent:
-        flash("Notificacion por correo enviada al usuario receptor.", "success")
-    else:
-        flash("No se pudo enviar el correo de notificacion. Revisa la configuracion SMTP.", "error")
 
 
 def mark_messages_as_read() -> None:
@@ -2030,6 +1978,23 @@ def save_user_reference(user_id: str) -> Any:
     return redirect(url_for("user_profile_page", user_id=target_user_id))
 
 
+@app.route("/internal/email-digest", methods=["POST"])
+def email_digest_trigger() -> Any:
+    expected = os.environ.get("DIGEST_SCHEDULER_TOKEN", "")
+    if not expected:
+        return jsonify({"error": "Scheduler not configured"}), 503
+    authorization = request.headers.get("Authorization", "")
+    if not secrets.compare_digest(authorization.encode("utf-8"), f"Bearer {expected}".encode("utf-8")):
+        abort(403)
+    from email_digest import send_due_digests
+    try:
+        report = send_due_digests()
+        return jsonify(report), 503 if report["failed"] else 200
+    except ValueError:
+        app.logger.exception("No se pudo ejecutar el resumen de correos.")
+        return jsonify({"error": "Email configuration error"}), 503
+
+
 @app.route("/notifications", methods=["GET"])
 def notifications_page() -> Any:
     if not is_authenticated_user():
@@ -2091,10 +2056,11 @@ def send_message() -> Any:
             "text": text,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "read": False,
+            "email_state": "pending",
         }
     )
     save_messages(messages)
-    flash_message_delivery(notify_message_recipient(receiver, sender, card_name))
+    flash("Mensaje enviado. El aviso por correo se incluira en el proximo resumen de las 09:30 o 16:30 (Chile).", "success")
     return_card_id = request.form.get("return_card_id", "").strip()
     if return_card_id:
         return redirect(url_for("card_detail", card_id=return_card_id))
@@ -2132,10 +2098,11 @@ def reply_message() -> Any:
             "text": text,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "read": False,
+            "email_state": "pending",
         }
     )
     save_messages(messages)
-    flash_message_delivery(notify_message_recipient(receiver, sender))
+    flash("Mensaje enviado. El aviso por correo se incluira en el proximo resumen de las 09:30 o 16:30 (Chile).", "success")
     return redirect(url_for("messages_page"))
 
 

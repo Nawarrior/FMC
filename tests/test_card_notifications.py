@@ -26,7 +26,7 @@ class CardNotificationTests(unittest.TestCase):
         self.card = {"id": "edition-new", "name": "Duress", "set_name": "Test set"}
         application.app.config.update(TESTING=True)
         self.client = application.app.test_client()
-        self.mail_patch = patch.object(application, "notify_card_match_recipient", return_value=False)
+        self.mail_patch = patch.object(application, "send_email", return_value=False)
         self.mail = self.mail_patch.start()
         self.addCleanup(self.mail_patch.stop)
 
@@ -143,32 +143,32 @@ class CardNotificationTests(unittest.TestCase):
         self.assertEqual(database.count_unread_card_notifications("seller"), 0)
         self.assertEqual(database.count_unread_card_notifications("buyer"), 1)
 
-    def test_match_email_is_sent_once_after_success(self):
+    def test_search_queues_notice_without_smtp(self):
         database.save_collection("saved_cards", [self.publication("seller", "ofrezco")])
         self.mail.return_value = True
         application.notify_card_matches(self.card, "busco", self.actor)
         application.notify_card_matches(self.card, "busco", self.actor)
-        self.mail.assert_called_once()
-        self.assertEqual(database.load_card_notifications("seller")[0]["email_state"], "sent")
+        self.mail.assert_not_called()
+        self.assertNotEqual(database.load_card_notifications("seller")[0].get("email_state"), "sent")
 
-    def test_failed_email_can_retry_without_duplicate_site_notice(self):
+    def test_repeat_offer_keeps_one_pending_notice_without_smtp(self):
         database.save_collection("saved_cards", [self.publication("buyer", "busco")])
         application.notify_card_matches(self.card, "ofrezco", self.actor)
-        self.assertEqual(database.load_card_notifications("buyer")[0]["email_state"], "pending")
+        self.assertNotEqual(database.load_card_notifications("buyer")[0].get("email_state"), "sent")
         self.mail.return_value = True
         self.assertEqual(application.notify_card_matches(self.card, "ofrezco", self.actor), 0)
-        self.assertEqual(self.mail.call_count, 2)
+        self.mail.assert_not_called()
         self.assertEqual(len(database.load_card_notifications("buyer")), 1)
-        self.assertEqual(database.load_card_notifications("buyer")[0]["email_state"], "sent")
+        self.assertNotEqual(database.load_card_notifications("buyer")[0].get("email_state"), "sent")
 
-    def test_email_claim_prevents_parallel_duplicate_delivery(self):
-        database.save_collection("saved_cards", [self.publication("seller", "ofrezco")])
-        application.notify_card_matches(self.card, "busco", self.actor)
-        key = database.load_card_notifications("seller")[0]["dedup_key"]
-        self.assertTrue(database.claim_card_notification_email(key))
-        self.assertFalse(database.claim_card_notification_email(key))
-        database.finish_card_notification_email(key, False)
-        self.assertTrue(database.claim_card_notification_email(key))
+    def test_sending_message_queues_email_without_waiting_for_smtp(self):
+        self.login()
+        response = self.client.post("/messages/send", data={
+            "csrf_token": "test-token", "receiver_user_id": "seller", "message_text": "Hola", "card_name": "Duress",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.mail.assert_not_called()
+        self.assertEqual(database.load_collection("messages")[0]["email_state"], "pending")
 
 
 if __name__ == "__main__":

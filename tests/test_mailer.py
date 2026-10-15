@@ -57,24 +57,18 @@ class MailerTests(unittest.TestCase):
         with patch.object(mailer.smtplib, "SMTP", return_value=smtp), self.assertRaises(smtplib.SMTPRecipientsRefused):
             mailer.send_email("recipient@example.test", "Test", "Body")
 
-    def test_all_notification_types_use_same_transport(self):
+    def test_password_recovery_still_sends_immediately(self):
         receiver = {"name": "Receiver", "email": "receiver@example.test"}
-        sender = {"name": "Sender"}
         with application.app.test_request_context(), patch.object(application, "send_email", return_value=True) as send:
-            self.assertTrue(application.send_message_notification(receiver, sender, "Duress"))
             self.assertTrue(application.send_password_reset_email(receiver, "https://example.test/reset/token"))
-            self.assertTrue(application.notify_card_match_recipient(receiver, sender, "Duress", "searched"))
-            self.assertTrue(application.notify_card_match_recipient(receiver, sender, "Duress", "offered"))
-        self.assertEqual(send.call_count, 4)
-        self.assertIn("busca una carta", send.call_args_list[2].args[2])
-        self.assertIn("ofrece una carta", send.call_args_list[3].args[2])
-        self.assertIn("https://nawarrior.pythonanywhere.com/notifications", send.call_args_list[2].args[2])
+        send.assert_called_once()
+        self.assertIn("https://example.test/reset/token", send.call_args.args[2])
 
     def test_smtp_failure_preserves_user_flow(self):
         with application.app.test_request_context(), \
              patch.object(application, "send_email", side_effect=smtplib.SMTPAuthenticationError(535, b"denied")), \
              patch.object(application.app.logger, "exception") as log:
-            self.assertFalse(application.notify_card_match_recipient({"email": "recipient@example.test"}, {}, "Duress", "offered"))
+            self.assertFalse(application.notify_password_reset({"email": "recipient@example.test"}, "https://example.test/reset/token"))
         log.assert_called_once()
 
 
