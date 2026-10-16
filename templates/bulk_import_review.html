@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Revisar carga masiva{% endblock %}
+{% block banner_title %}Revisa tus cartas antes de importar{% endblock %}
+{% block banner_text %}Selecciona las cartas reconocidas que quieres agregar. Las filas con errores o duplicados no se importan.{% endblock %}
+{% block content %}
+  <section class="saved-panel bulk-import-panel">
+    <a class="back-link" href="{{ url_for('bulk_import_page') }}">← Subir otro listado</a>
+    <h1>Revisar carga masiva</h1>
+    {% if batch.state == 'imported' %}
+      <p class="message">Esta carga ya fue importada.</p>
+      <a class="detail-link" href="{{ url_for('saved_cards_page') }}">Ver mi listado</a>
+    {% else %}
+      <p id="import-progress" role="status" aria-live="polite">Validando cartas…</p>
+      <button id="import-retry" class="nav-button" type="button" hidden>Reintentar validacion</button>
+      <form method="post" action="{{ url_for('bulk_import_confirm', batch_id=batch.import_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="bulk-select-all"><input type="checkbox" id="import-select-all" checked> Seleccionar todas las cartas listas</label>
+        <div class="bulk-table-scroll">
+          <table class="bulk-table">
+            <thead><tr><th>Importar</th><th>Fila</th><th>Carta</th><th>Cantidad</th><th>Estado</th><th>Edicion</th><th>Nota</th><th>Resultado</th></tr></thead>
+            <tbody id="import-rows"></tbody>
+          </table>
+        </div>
+        <button id="import-confirm" class="nav-button" type="submit" disabled>Importar seleccionadas</button>
+      </form>
+      <noscript><p class="message">Activa JavaScript para validar el listado antes de importarlo.</p></noscript>
+    {% endif %}
+  </section>
+{% endblock %}
+{% block extra_scripts %}
+  {% if batch.state != 'imported' %}
+    <script>
+      (() => {
+        const body = document.getElementById("import-rows");
+        const progress = document.getElementById("import-progress");
+        const retry = document.getElementById("import-retry");
+        const confirm = document.getElementById("import-confirm");
+        const selectAll = document.getElementById("import-select-all");
+        const states = {pending: "Pendiente", ready: "Lista", error: "Error", duplicate: "Duplicada"};
+        let rows = {{ batch.rows|tojson }};
+        let busy = false;
+        const render = () => {
+          body.replaceChildren();
+          rows.forEach((row, index) => {
+            const tr = document.createElement("tr");
+            const selection = document.createElement("td");
+            if (row.status === "ready") {
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox"; checkbox.name = "row"; checkbox.value = index; checkbox.checked = selectAll.checked;
+              checkbox.setAttribute("aria-label", `Importar ${row.card.name}`);
+              selection.appendChild(checkbox);
+            }
+            tr.appendChild(selection);
+            const card = row.card;
+            [row.line, card?.name || row.name, row.quantity, row.intent === "ofrezco" ? "Ofrezco" : "Busco",
+             card ? `${card.set_name} (${card.set.toUpperCase()})` : row.set || "Automatica", row.note || "—", row.error || states[row.status]].forEach(value => {
+              const td = document.createElement("td"); td.textContent = value; tr.appendChild(td);
+            });
+            body.appendChild(tr);
+          });
+          const ready = rows.filter(row => row.status === "ready").length;
+          const pending = rows.filter(row => row.status === "pending").length;
+          progress.textContent = `${ready} listas · ${rows.length - ready - pending} con errores o duplicadas · ${pending} pendientes`;
+          confirm.disabled = busy || pending > 0 || ready === 0;
+        };
+        const resolve = async () => {
+          if (busy) return;
+          busy = true; retry.hidden = true; render();
+          try {
+            while (rows.some(row => row.status === "pending")) {
+              const response = await fetch({{ url_for('bulk_import_resolve', batch_id=batch.import_id)|tojson }}, {
+                method: "POST", headers: {"X-CSRF-Token": {{ csrf_token()|tojson }}, "Accept": "application/json"}
+              });
+              const payload = await response.json();
+              if (!response.ok) throw new Error(payload.error || "No se pudo validar el listado.");
+              rows = payload.rows; render();
+              if (payload.pending) await new Promise(resolve => setTimeout(resolve, 150));
+            }
+          } catch (error) {
+            progress.textContent = error.message;
+            retry.hidden = false;
+          } finally {
+            busy = false;
+            if (retry.hidden) render();
+          }
+        };
+        selectAll.addEventListener("change", () => body.querySelectorAll('input[type="checkbox"]').forEach(box => box.checked = selectAll.checked));
+        retry.addEventListener("click", resolve);
+        confirm.form.addEventListener("submit", () => { confirm.disabled = true; confirm.textContent = "Importando…"; });
+        render(); resolve();
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

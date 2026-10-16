@@ -19,6 +19,7 @@ import time
 from authlib.integrations.flask_client import OAuth
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from mailer import send_email
 from database import (
@@ -130,6 +131,8 @@ def validate_csrf_token() -> None:
         return
     if request.endpoint == "email_digest_trigger":
         return  # This endpoint authenticates with a private scheduler token.
+    if request.endpoint == "bulk_import_page":
+        request.max_content_length = 2 * 1024 * 1024 + 65536
 
     expected_token = session.get("_csrf_token")
     submitted_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
@@ -810,7 +813,9 @@ def build_map_link(address: str) -> str:
     return f"https://www.google.com/maps/search/?api=1&query={quote(normalized_address)}"
 
 
-def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str] | None = None) -> int:
+def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str] | None = None,
+                        *, users: list | None = None, saved_cards: list | None = None,
+                        notification_sink: list | None = None) -> int:
     actor = actor if actor is not None else current_user_identity()
     actor_id = (actor.get("user_id") or "").strip().lower()
     actor_email = (actor.get("email") or "").strip().lower()
@@ -820,13 +825,13 @@ def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str]
 
     target_intent = "ofrezco" if intent == "busco" else "busco"
     kind = "searched" if intent == "busco" else "offered"
-    users = load_users()
+    users = users if users is not None else load_users()
     users_by_id = {(user.get("user_id") or "").strip().lower(): user for user in users if user.get("user_id")}
     users_by_email = {(user.get("email") or "").strip().lower(): user for user in users if user.get("email")}
     recipients = set()
     now = datetime.now()
     notifications = []
-    for item in load_saved_cards():
+    for item in (saved_cards if saved_cards is not None else load_saved_cards()):
         if ((item.get("name") or "").strip().casefold() != card_name.casefold()
                 or (item.get("intent") or "").strip().lower() != target_intent
                 or item.get("transaction_completed", False)
@@ -855,6 +860,9 @@ def notify_card_matches(card: dict[str, Any], intent: str, actor: dict[str, str]
             "created_at": now.strftime("%Y-%m-%d %H:%M:%S"),
             "read": False,
         })
+    if notification_sink is not None:
+        notification_sink.extend(notifications)
+        return len(notifications)
     return add_card_notifications(notifications) if notifications else 0
 
 
@@ -1020,14 +1028,16 @@ def find_saved_status(card_name: str, current_user_id: str = "") -> dict[str, An
     }
 
 
-def build_saved_card_view(item: dict[str, Any], index: int) -> dict[str, Any]:
+def build_saved_card_view(item: dict[str, Any], index: int, hydrate: bool = True) -> dict[str, Any]:
     selected_id = item.get("card_id", "")
     editions: list[dict[str, Any]] = []
-    image_url: str | None = None
+    image_url: str | None = item.get("image_url")
+    if not image_url and selected_id and not hydrate:
+        image_url = f"{SCRYFALL_API}/cards/{quote(selected_id)}?format=image&version=normal"
     rarity = item.get("rarity", "")
     owner_user_id = (item.get("user_id") or "").strip().lower()
 
-    if selected_id:
+    if selected_id and hydrate:
         try:
             selected_card_raw = get_card(selected_id)
             editions = get_card_editions(selected_card_raw, selected_id)
@@ -1874,10 +1884,9 @@ def saved_cards_page() -> str:
         flash("Debes iniciar sesion para ver tu listado.", "error")
         return redirect(url_for("register_page"))
 
-    saved_cards = [build_saved_card_view(item, index) for index, item in enumerate(load_saved_cards())]
     current_email = current_user_identity().get("email", "")
     saved_cards = [
-        item for item in saved_cards
+        {**item, "index": index} for index, item in enumerate(load_saved_cards())
         if (item.get("user_email") or "").strip().lower() == current_email
     ]
     status_filter = request.args.get("status", "").strip().lower()
@@ -1889,6 +1898,13 @@ def saved_cards_page() -> str:
     if rarity_filter:
         saved_cards = [item for item in saved_cards if (item.get("rarity") or "").lower() == rarity_filter]
 
+    page_count = max(1, (len(saved_cards) + 49) // 50)
+    try:
+        page = max(1, min(page_count, int(request.args.get("page", "1"))))
+    except ValueError:
+        page = 1
+    saved_cards = [build_saved_card_view(item, item["index"], hydrate=False) for item in saved_cards[(page - 1) * 50:page * 50]]
+
     return render_template(
         "saved_manage_grid.html",
         search_query="",
@@ -1896,7 +1912,98 @@ def saved_cards_page() -> str:
         status_filter=status_filter,
         rarity_filter=rarity_filter,
         available_rarities=available_rarities,
+        page=page,
+        page_count=page_count,
     )
+
+
+@app.route("/saved/import", methods=["GET", "POST"])
+def bulk_import_page() -> Any:
+    if not is_authenticated_user() or not current_user_identity()["user_id"]:
+        return redirect(url_for("register_page"))
+    import bulk_import
+    error = None
+    if request.method == "POST":
+        upload = request.files.get("file")
+        text = request.form.get("cards_text", "").strip()
+        intent = request.form.get("intent", "busco")
+        try:
+            if bool(upload and upload.filename) == bool(text):
+                raise ValueError("Elige un archivo o pega un listado, usando solo una de las dos opciones.")
+            data = upload.read(bulk_import.MAX_BYTES + 1) if upload and upload.filename else text.encode("utf-8")
+            rows = bulk_import.parse_upload(data, upload.filename if upload and upload.filename else "cards.txt", intent)
+            batch_id = bulk_import.create_import(current_user_identity()["user_id"], rows)
+            return redirect(url_for("bulk_import_review", batch_id=batch_id))
+        except ValueError as exc:
+            error = str(exc)
+    return render_template("bulk_import.html", error=error, search_query="")
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def import_too_large(error: RequestEntityTooLarge) -> Any:
+    return render_template("bulk_import.html", error="El archivo o listado supera el limite de 2 MB.", search_query=""), 413
+
+
+@app.route("/saved/import/<batch_id>", methods=["GET"])
+def bulk_import_review(batch_id: str) -> Any:
+    if not is_authenticated_user() or not current_user_identity()["user_id"]:
+        return redirect(url_for("register_page"))
+    from bulk_import import get_import
+    batch = get_import(batch_id, current_user_identity()["user_id"])
+    if not batch:
+        abort(404)
+    return render_template("bulk_import_review.html", batch=batch, search_query="")
+
+
+@app.route("/saved/import/<batch_id>/resolve", methods=["POST"])
+def bulk_import_resolve(batch_id: str) -> Any:
+    if not is_authenticated_user() or not current_user_identity()["user_id"]:
+        abort(401)
+    from bulk_import import get_import, resolve_import
+    owner_id = current_user_identity()["user_id"]
+    if not get_import(batch_id, owner_id):
+        abort(404)
+    try:
+        batch = resolve_import(batch_id, owner_id)
+        return jsonify({"rows": batch["rows"], "pending": sum(row["status"] == "pending" for row in batch["rows"])})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@app.route("/saved/import/<batch_id>/confirm", methods=["POST"])
+def bulk_import_confirm(batch_id: str) -> Any:
+    if not is_authenticated_user() or not current_user_identity()["user_id"]:
+        abort(401)
+    from bulk_import import confirm_import, get_import
+    owner = current_user_identity()
+    if not get_import(batch_id, owner["user_id"]):
+        abort(404)
+    try:
+        selected = {int(index) for index in request.form.getlist("row")}
+        added = confirm_import(batch_id, owner, selected)
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("bulk_import_review", batch_id=batch_id))
+    users, saved_cards, notices = load_users(), load_saved_cards(), []
+    for item in added:
+        notify_card_matches({"id": item["card_id"], "name": item["name"]}, item["intent"], owner,
+                            users=users, saved_cards=saved_cards, notification_sink=notices)
+    if notices:
+        add_card_notifications(notices)
+    flash(f"Carga terminada: {len(added)} cartas agregadas. Las coincidencias quedan para el proximo resumen de correo.", "success")
+    return redirect(url_for("saved_cards_page"))
+
+
+@app.route("/api/card/<card_id>/editions", methods=["GET"])
+def card_editions_api(card_id: str) -> Any:
+    if not is_authenticated_user():
+        abort(401)
+    try:
+        return jsonify({"editions": get_card_editions(get_card(card_id), card_id)})
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
 
 
 @app.route("/users", methods=["GET"])
@@ -2327,6 +2434,7 @@ def save_card_entry(card_id: str) -> Any:
         saved_cards = load_saved_cards()
         saved_cards.append(
             {
+                "image_url": first_available_image(selected_card_raw),
                 "card_id": selected_card_raw.get("id"),
                 "name": selected_card_raw.get("name"),
                 "edition": selected_card_raw.get("set_name"),
@@ -2377,7 +2485,7 @@ def update_saved_card(item_index: int) -> Any:
 
     quantity_raw = request.form.get("quantity", "1").strip()
     try:
-        quantity = max(1, min(4, int(quantity_raw)))
+        quantity = max(1, min(9999, int(quantity_raw)))
     except ValueError:
         quantity = 1
 
@@ -2392,6 +2500,7 @@ def update_saved_card(item_index: int) -> Any:
     }
 
     saved_cards[item_index] = {
+        "image_url": first_available_image(selected_card_raw),
         "card_id": selected_card_raw.get("id"),
         "name": selected_card_raw.get("name"),
         "edition": selected_card_raw.get("set_name"),

@@ -7,6 +7,15 @@
 {% block content %}
   <section class="saved-panel">
     <h1>Mi listado</h1>
+    <a class="nav-button bulk-import-link" href="{{ url_for('bulk_import_page') }}">Carga masiva de cartas</a>
+
+    {% if page_count > 1 %}
+      <nav class="bulk-pagination" aria-label="Paginas del listado">
+        {% if page > 1 %}<a class="back-link" href="{{ url_for('saved_cards_page', page=page-1, status=status_filter, rarity=rarity_filter) }}">Anterior</a>{% endif %}
+        <span>Pagina {{ page }} de {{ page_count }}</span>
+        {% if page < page_count %}<a class="back-link" href="{{ url_for('saved_cards_page', page=page+1, status=status_filter, rarity=rarity_filter) }}">Siguiente</a>{% endif %}
+      </nav>
+    {% endif %}
 
     <form class="saved-filters" method="get" action="{{ url_for('saved_cards_page') }}">
       <div>
@@ -100,7 +109,10 @@
                       </div>
                     </div>
                   {% else %}
-                    <span>{{ item.edition }}</span>
+                    <select name="edition" aria-label="Edicion de {{ item.name }}" data-lazy-editions="{{ url_for('card_editions_api', card_id=item.card_id) }}">
+                      <option value="{{ item.card_id }}">{{ item.edition }}</option>
+                    </select>
+                    <span class="muted" role="status" data-edition-error></span>
                   {% endif %}
                 {% else %}
                   <span>{{ item.edition }}</span>
@@ -123,11 +135,7 @@
 
               <div class="saved-grid-cell">
                 {% if item.can_manage %}
-                  <select id="quantity-{{ item.index }}" name="quantity">
-                    {% for amount in ['1', '2', '3', '4'] %}
-                      <option value="{{ amount }}" {% if item.quantity|string == amount %}selected{% endif %}>{{ amount }}</option>
-                    {% endfor %}
-                  </select>
+                  <input id="quantity-{{ item.index }}" name="quantity" type="number" min="1" max="9999" value="{{ item.quantity }}" required>
                 {% else %}
                   <span>{{ item.quantity }}</span>
                 {% endif %}
@@ -169,6 +177,32 @@
 {% endblock %}
 
 {% block extra_scripts %}
+  <script>
+    document.addEventListener("focusin", async (event) => {
+      const select = event.target.closest("[data-lazy-editions]");
+      if (!select || select.dataset.loaded || select.dataset.loading) return;
+      select.dataset.loading = "true";
+      select.setAttribute("aria-busy", "true");
+      const status = select.parentElement.querySelector("[data-edition-error]");
+      try {
+        status.textContent = "Cargando ediciones…";
+        const response = await fetch(select.dataset.lazyEditions);
+        if (!response.ok) throw new Error("No se pudieron cargar las ediciones. Vuelve a seleccionar el campo para reintentar.");
+        const payload = await response.json();
+        const selected = select.value;
+        if (payload.editions.length) {
+          select.replaceChildren(...payload.editions.map(edition => new Option(edition.label, edition.id, false, edition.id === selected)));
+        }
+        select.dataset.loaded = "true";
+        status.textContent = "";
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        delete select.dataset.loading;
+        select.removeAttribute("aria-busy");
+      }
+    });
+  </script>
   <script>
     (() => {
       const pickers = Array.from(document.querySelectorAll(".saved-edition-picker[data-edition-picker]"));

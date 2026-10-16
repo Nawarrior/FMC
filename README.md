@@ -21,6 +21,25 @@ python app.py
 
 Luego abre `http://127.0.0.1:5000`.
 
+## Carga masiva de cartas
+
+En **Mi listado > Carga masiva de cartas** puedes subir Excel `.xlsx`, CSV, TSV o TXT, o pegar un listado. Elige **Busco** u **Ofrezco** como estado por defecto. Se permiten hasta 500 filas y 2 MB por carga.
+
+Para texto, usa una carta por linea, con cantidad opcional:
+
+```text
+4 Duress
+2x Thoughtseize
+Lightning Bolt
+1 Opt (M21) 59
+```
+
+Para Excel o CSV usa las columnas `Nombre`, `Cantidad`, `Edicion`, `Numero`, `Nota` y `Estado`. Solo `Nombre` es obligatoria; si omites cantidad se usa 1. `Edicion` es el codigo del set, y `Numero` permite elegir una impresion concreta. La columna `Estado`, si existe, permite mezclar Busco y Ofrezco. En Excel se lee la primera hoja; convierte los archivos antiguos `.xls` a `.xlsx`.
+
+La vista previa valida en Scryfall por grupos de 25. Muestra las cartas reconocidas, ediciones propuestas y errores. Nada se guarda hasta pulsar **Importar seleccionadas**. Los duplicados activos del mismo usuario, edicion y estado se omiten sin sumar cantidades; cada carga solo se confirma una vez. Las coincidencias se agregan a las notificaciones y al resumen programado, sin enviar correos durante la carga.
+
+El listado muestra 50 cartas por pagina y carga las ediciones al abrir el selector, evitando consultas por cada carta al entrar.
+
 ## Base de datos
 
 La aplicacion usa SQLite para sus datos propios: usuarios, cartas guardadas, productos, carrito, tiendas, referencias, mensajes e historial de busquedas. La ruta predeterminada se define en `database.py` y puede cambiarse mediante `DATABASE_PATH`.

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Carga masiva de cartas{% endblock %}
+{% block banner_title %}Carga tu listado de cartas{% endblock %}
+{% block banner_text %}Importa las cartas que buscas u ofreces desde Excel o texto, y revisalas antes de guardarlas.{% endblock %}
+{% block content %}
+  <section class="saved-panel bulk-import-panel">
+    <a class="back-link" href="{{ url_for('saved_cards_page') }}">← Volver a mi listado</a>
+    <h1>Carga masiva</h1>
+    {% if error %}<p class="message error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="bulk-import-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="import-intent">Quiero publicar estas cartas como</label>
+      <select id="import-intent" name="intent">
+        <option value="busco">Busco</option>
+        <option value="ofrezco">Ofrezco</option>
+      </select>
+      <label for="import-file">Subir Excel o texto</label>
+      <input id="import-file" type="file" name="file" accept=".xlsx,.txt,.csv,.tsv">
+      <p class="muted">Excel .xlsx, CSV o TXT. Maximo 500 filas y 2 MB. En Excel se lee la primera hoja.</p>
+      <label for="cards-text">O pega tu listado aqui</label>
+      <textarea id="cards-text" name="cards_text" rows="8" placeholder="4 Duress&#10;2x Thoughtseize&#10;Lightning Bolt&#10;1 Opt (M21) 59"></textarea>
+      <p class="muted">Una carta por linea. La cantidad es opcional (por defecto 1). Si indicas edicion, usa su codigo.</p>
+      <button class="nav-button" type="submit">Revisar listado</button>
+    </form>
+    <details class="bulk-format-help">
+      <summary>Formato para Excel o CSV</summary>
+      <p>Usa estas columnas. Solo Nombre es obligatoria:</p>
+      <div class="bulk-table-scroll">
+        <table class="bulk-table">
+          <thead><tr><th>Nombre</th><th>Cantidad</th><th>Edicion</th><th>Numero</th><th>Nota</th><th>Estado</th></tr></thead>
+          <tbody><tr><td>Duress</td><td>4</td><td>M21</td><td>96</td><td>En ingles</td><td>Busco</td></tr></tbody>
+        </table>
+      </div>
+      <p>Estado es opcional y permite mezclar Busco y Ofrezco. Si se omite, se usa la opcion elegida arriba. Usa nombres completos; los nombres en ingles tienen mayor cobertura. Sin edicion, se propone la version que devuelve Scryfall para que la revises.</p>
+      <p>Las cartas que ya tengas activas en el mismo estado y edicion se marcaran como duplicadas. No se sumaran cantidades automaticamente.</p>
+    </details>
+  </section>
+{% endblock %}

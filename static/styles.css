@@ -1375,6 +1375,41 @@ h1 {
   margin-bottom: 8px;
 }
 
+.bulk-import-link {
+  display: inline-block;
+  margin-bottom: 18px;
+}
+
+.bulk-import-form {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.bulk-import-form input,
+.bulk-import-form select,
+.bulk-import-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+
+.bulk-import-form .muted { margin: 0 0 10px; }
+.bulk-format-help { margin-top: 28px; }
+.bulk-format-help summary { cursor: pointer; font-weight: 700; }
+.bulk-table-scroll { overflow-x: auto; margin: 18px 0; }
+.bulk-table { width: 100%; border-collapse: collapse; text-align: left; }
+.bulk-table th, .bulk-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.bulk-table th { color: var(--accent); }
+.bulk-table input[type="checkbox"] { width: 20px; height: 20px; }
+.bulk-select-all { display: inline-block; margin-top: 16px; }
+.bulk-pagination { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+
 .saved-filters {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

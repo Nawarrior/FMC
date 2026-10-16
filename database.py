@@ -27,6 +27,7 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
     },
     "saved_cards": {
         "columns": {
+            "image_url": "TEXT",
             "card_id": "TEXT",
             "name": "TEXT",
             "edition": "TEXT",
@@ -140,6 +141,10 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
         },
         "json_fields": set(),
     },
+    "card_imports": {
+        "columns": {"import_id": "TEXT", "user_id": "TEXT", "rows": "TEXT", "state": "TEXT", "created_at": "TEXT"},
+        "json_fields": {"rows"},
+    },
     "email_digest_batches": {
         "columns": {
             "batch_id": "TEXT", "receiver_user_id": "TEXT", "slot_key": "TEXT",
@@ -190,6 +195,7 @@ INDEX_DEFINITIONS = (
     ("idx_card_notifications_receiver", "card_notifications", ("receiver_user_id", "read"), False),
     ("idx_card_notifications_dedup", "card_notifications", ("dedup_key",), True),
     ("idx_email_digest_slot", "email_digest_batches", ("receiver_user_id", "slot_key"), True),
+    ("idx_card_import_owner", "card_imports", ("import_id", "user_id"), True),
     ("idx_password_reset_tokens_token_hash", "password_reset_tokens", ("token_hash",), False),
     ("idx_password_reset_requests_email", "password_reset_requests", ("email",), False),
 )
