@@ -357,6 +357,10 @@ body {
   object-position: center;
 }
 
+.carousel-mobile-caption {
+  display: none;
+}
+
 .carousel-nav {
   position: absolute;
   top: 50%;
@@ -2348,12 +2352,104 @@ h1 {
     align-items: start;
   }
 
-  .carousel-track {
-    min-height: 300px;
+  .global-search {
+    gap: 14px;
+    padding: 20px 16px;
+    margin-bottom: 18px;
+    border-radius: 18px;
   }
 
-  .carousel-slide-news .carousel-slide-image {
-    object-position: left center;
+  .global-search-copy > div {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .banner-title {
+    font-size: clamp(1.35rem, 5.8vw, 2rem);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .global-search-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .compact-search {
+    gap: 8px;
+  }
+
+  .compact-search input {
+    padding: 14px;
+    font-size: 16px;
+  }
+
+  .compact-search button {
+    min-height: 48px;
+    width: 100%;
+  }
+
+  .hero.hero-home.arcana-hero {
+    padding: 8px;
+    gap: 0;
+  }
+
+  .hero-carousel {
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .carousel-track {
+    display: grid;
+    min-height: 0;
+    border-radius: 14px;
+  }
+
+  .carousel-slide {
+    grid-area: 1 / 1;
+    position: relative;
+    inset: auto;
+    min-width: 0;
+    padding: 0;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    visibility: hidden;
+    transform: none;
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .carousel-slide.is-active {
+    visibility: visible;
+  }
+
+  .carousel-slide.feature-tile:hover {
+    transform: none;
+  }
+
+  .carousel-slide-image {
+    position: static;
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 2;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  .carousel-mobile-caption {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 76px;
+    padding: 12px 58px;
+    color: var(--ink);
+    background: rgba(7, 17, 31, 0.98);
+    font-size: clamp(1rem, 3.5vw, 1.2rem);
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
   }
 
   .carousel-slide-inner {
@@ -2364,14 +2460,53 @@ h1 {
     width: 44px;
     height: 44px;
     font-size: 1.6rem;
+    top: auto;
+    bottom: 16px;
+    transform: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    touch-action: manipulation;
+  }
+
+  .carousel-nav:hover {
+    transform: none;
   }
 
   .carousel-nav-prev {
-    left: 12px;
+    left: 8px;
   }
 
   .carousel-nav-next {
-    right: 12px;
+    right: 8px;
+  }
+
+  .carousel-controls {
+    margin-top: 0;
+    gap: 0;
+  }
+
+  .carousel-button,
+  .carousel-button.is-active {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    touch-action: manipulation;
+  }
+
+  .carousel-button::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--muted);
+  }
+
+  .carousel-button.is-active::before {
+    width: 24px;
+    background: var(--accent);
   }
 
   .user-profile-hero {

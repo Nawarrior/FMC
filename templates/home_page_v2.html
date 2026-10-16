@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block title %}Buscador Magic{% endblock %}
-{% block banner_title %}Arcana para cartas, sets y detalles{% endblock %}
-{% block banner_text %}Una portada inspirada en Arcana de HTML5 UP, adaptada al flujo de busqueda y detalle de Scryfall.{% endblock %}
+{% block banner_title %}Encuentra tu próxima carta{% endblock %}
+{% block banner_text %}Busca cartas de Magic, encuentra quién las ofrece y comparte las que buscas.{% endblock %}
 
 {% block content %}
   <section class="hero hero-home arcana-hero">
@@ -15,6 +15,7 @@
             alt=""
             aria-hidden="true"
           >
+          <span class="carousel-mobile-caption">Cartas disponibles</span>
         </a>
         <a class="feature-tile feature-link carousel-slide carousel-slide-searches" href="{{ url_for('community_cards_page', status='busco') }}" aria-label="Cartas buscadas" data-carousel-slide>
           <img
@@ -23,6 +24,7 @@
             alt=""
             aria-hidden="true"
           >
+          <span class="carousel-mobile-caption">Cartas buscadas</span>
         </a>
         <a class="feature-tile feature-link carousel-slide carousel-slide-news" href="{{ url_for('news_page') }}" aria-label="Noticias" data-carousel-slide>
           <img
@@ -31,6 +33,7 @@
             alt=""
             aria-hidden="true"
           >
+          <span class="carousel-mobile-caption">Noticias de FindMyCard</span>
         </a>
         <button class="carousel-nav carousel-nav-prev" type="button" aria-label="Slide anterior" data-carousel-prev>‹</button>
         <button class="carousel-nav carousel-nav-next" type="button" aria-label="Siguiente slide" data-carousel-next>›</button>
@@ -106,9 +109,12 @@
         activeIndex = nextIndex;
         slides.forEach((slide, index) => {
           slide.classList.toggle("is-active", index === activeIndex);
+          slide.tabIndex = index === activeIndex ? 0 : -1;
+          slide.setAttribute("aria-hidden", String(index !== activeIndex));
         });
         dots.forEach((dot, index) => {
           dot.classList.toggle("is-active", index === activeIndex);
+          dot.setAttribute("aria-current", String(index === activeIndex));
         });
       };
 
@@ -133,6 +139,7 @@
 
       carousel.addEventListener("mouseenter", () => window.clearInterval(intervalId));
       carousel.addEventListener("mouseleave", startAutoplay);
+      render(0);
       startAutoplay();
     })();
   </script>
