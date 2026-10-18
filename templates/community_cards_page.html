@@ -8,9 +8,14 @@
   <section class="saved-panel">
     <p class="eyebrow">Comunidad</p>
     <h1>{% if name_filter %}{{ name_filter }}{% else %}Cartas de usuarios{% endif %}</h1>
+    {% if selected_user %}<p class="muted">Publicaciones de <a class="saved-link" href="{{ url_for('user_profile_page', user_id=selected_user.user_id) }}">{{ selected_user.name }}</a></p>{% endif %}
 
     <form class="saved-filters" method="get" action="{{ url_for('community_cards_page') }}">
       <input type="hidden" name="name" value="{{ name_filter or '' }}">
+      <div>
+        <label for="community-user-filter"><strong>Usuario</strong></label>
+        <select id="community-user-filter" name="user_id"><option value="">Todos los usuarios</option>{% for user in available_users %}<option value="{{ user.user_id }}" {% if user_filter == user.user_id %}selected{% endif %}>{{ user.name }}</option>{% endfor %}</select>
+      </div>
       <div>
         <label for="status-filter"><strong>Estado</strong></label>
         <select id="status-filter" name="status">

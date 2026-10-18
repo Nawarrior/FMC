@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/keyrune@latest/css/keyrune.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mana-font@latest/css/mana.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20261018-twitch">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20261018-tournaments">
 </head>
 <body>
   <header class="site-header">
@@ -28,13 +28,17 @@
           <a class="nav-link" href="{{ url_for('products_catalog_page') }}">Productos</a>
           <a class="nav-link" href="{{ url_for('stores_catalog_page') }}">Tiendas</a>
           <a class="nav-link" href="{{ url_for('news_page') }}">Noticias</a>
+          <a class="nav-link" href="{{ url_for('decks.public_index') }}">Decks publicados</a>
+          <a class="nav-link" href="{{ url_for('tournaments.index') }}">Torneos</a>
           {% if current_user %}
+            <a class="nav-link" href="{{ url_for('decks.index') }}">Mis decks</a>
             {% if cart_count %}
               <a class="nav-link" href="{{ url_for('cart_page') }}">Carrito ({{ cart_count }})</a>
             {% endif %}
             <a class="nav-link" href="{{ url_for('messages_page') }}">Mensajes{% if unread_message_count %} ({{ unread_message_count }}){% endif %}</a>
           {% endif %}
           {% if is_admin_user %}
+            <a class="nav-link" href="{{ url_for('tournaments.manage') }}">Mantenedor Torneos</a>
             <a class="nav-link" href="{{ url_for('news_manage_page') }}">Mantenedor Noticias</a>
             <a class="nav-link" href="{{ url_for('search_history_page') }}">Busquedas</a>
             <a class="nav-link" href="{{ url_for('products_page') }}">Mantenedor Productos</a>

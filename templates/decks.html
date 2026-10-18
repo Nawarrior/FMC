@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Mis decks · FindMyCard{% endblock %}
+{% block banner_title %}Mis decks{% endblock %}
+{% block banner_text %}Tu próxima estrategia empieza con una lista de cartas.{% endblock %}
+{% block content %}
+<section class="deck-workspace">
+  <div class="deck-heading"><div><p class="eyebrow">Tu colección de estrategias</p><h1>Mis decks <span class="deck-count">{{ decks|length }}</span></h1><p class="muted">Administra tus mazos y elige cuáles compartir en Decks publicados.</p></div><a class="deck-primary" href="#new-deck">+ Crear deck</a></div>
+  <div class="deck-library">
+    {% for deck in decks %}
+      {% set ready = deck.cards|selectattr('status', 'equalto', 'ready')|list %}
+      <a class="deck-library-card" href="{{ url_for('decks.detail', deck_id=deck.deck_id) }}">
+        <div class="deck-cover">{% if ready and ready[0].card.art_url %}<img src="{{ ready[0].card.art_url }}" alt="" loading="lazy">{% else %}<span aria-hidden="true">✦</span>{% endif %}<span class="deck-format-badge">{{ deck.format }}</span></div>
+        <div class="deck-library-copy"><h2>{{ deck.name }}</h2><p>{{ deck.description[:130] or 'Una nueva estrategia por descubrir.' }}</p><div class="deck-library-meta"><span>{{ deck.cards|sum(attribute='quantity') }} cartas</span><span>{{ 'Publicado' if deck.published else 'Privado' }}</span></div></div>
+      </a>
+    {% else %}<div class="deck-empty"><span aria-hidden="true">✦</span><h2>Tu primer deck te espera</h2><p>Pega una lista o sube un archivo para empezar a construirlo.</p></div>{% endfor %}
+  </div>
+  <section id="new-deck" class="deck-panel">
+    <p class="eyebrow">Nueva estrategia</p><h2>Crear deck</h2>
+    <form method="post" action="{{ url_for('decks.create') }}" class="deck-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="deck-form-grid"><label>Nombre del deck<input name="name" placeholder="Por ejemplo, Dimir Control" maxlength="120" required></label><label>Formato<select name="format">{% for format in formats %}<option {% if format == 'Commander' %}selected{% endif %}>{{ format }}</option>{% endfor %}</select></label></div>
+      <label>Descripción<textarea name="description" rows="2" maxlength="5000" placeholder="¿Cuál es el plan de tu mazo?"></textarea></label>
+      <button class="deck-primary" type="submit">Crear y cargar cartas →</button>
+    </form>
+  </section>
+</section>
+{% endblock %}

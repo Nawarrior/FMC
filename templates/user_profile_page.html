@@ -28,6 +28,12 @@
       </div>
     </div>
 
+    <nav class="user-profile-shortcuts" aria-label="Publicaciones del usuario">
+      <a href="{{ url_for('community_cards_page', user_id=profile.user.user_id, status='busco') }}"><strong>Cartas que busca</strong><span>{{ profile.busco_count }} publicaciones</span></a>
+      <a href="{{ url_for('community_cards_page', user_id=profile.user.user_id, status='ofrezco') }}"><strong>Cartas que ofrece</strong><span>{{ profile.ofrezco_count }} publicaciones</span></a>
+      <a href="{{ url_for('decks.public_index', user_id=profile.user.user_id) }}"><strong>Mazos publicados</strong><span>{{ profile.published_deck_count }} mazos públicos</span></a>
+    </nav>
+
     <section class="user-profile-layout">
       <article class="saved-card">
         <h2>Cartas ingresadas</h2>

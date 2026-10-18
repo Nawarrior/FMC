@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Torneos · FindMyCard{% endblock %}
+{% block banner_title %}Torneos de la comunidad{% endblock %}
+{% block banner_text %}Explora fechas, tiendas, resultados y los mazos de cada torneo.{% endblock %}
+{% block content %}
+<section class="deck-workspace">
+  <div class="deck-heading"><div><p class="eyebrow">La comunidad en juego</p><h1>Torneos</h1></div>{% if is_admin_user %}<a class="deck-primary" href="{{ url_for('tournaments.manage') }}">Administrar torneos</a>{% endif %}</div>
+  <form class="deck-panel deck-form" method="get"><label>Formato<select name="format"><option value="">Todos los formatos</option>{% for format in formats %}<option {% if format_filter == format %}selected{% endif %}>{{ format }}</option>{% endfor %}</select></label><button class="deck-primary" type="submit">Filtrar</button></form>
+  <div class="deck-library">
+    {% for event in events %}<article class="deck-panel tournament-summary"><p class="eyebrow">{{ event.format }}</p><time datetime="{{ event.event_date }}">{{ event.event_date[8:10] }}/{{ event.event_date[5:7] }}/{{ event.event_date[:4] }}</time><h2><a class="saved-link" href="{{ url_for('tournaments.detail', event_id=event.tournament_id) }}">{{ event.name }}</a></h2><p class="muted">{{ event.store_name or event.location }}</p><p class="muted">{{ event.results|length }} resultados registrados</p><a class="deck-secondary" href="{{ url_for('tournaments.detail', event_id=event.tournament_id) }}">Ver torneo →</a></article>
+    {% else %}<p class="deck-empty">Todavía no hay torneos{% if format_filter %} en este formato{% endif %}.</p>{% endfor %}
+  </div>
+  <nav class="deck-hero-actions" aria-label="Páginas de torneos">{% if page > 1 %}<a class="deck-secondary" href="{{ url_for('tournaments.index', page=page-1, format=format_filter) }}">← Anterior</a>{% endif %}{% if has_next %}<a class="deck-secondary" href="{{ url_for('tournaments.index', page=page+1, format=format_filter) }}">Siguiente →</a>{% endif %}</nav>
+</section>
+{% endblock %}

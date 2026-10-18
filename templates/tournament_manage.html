@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Mantenedor de torneos{% endblock %}
+{% block banner_title %}Mantenedor de torneos{% endblock %}
+{% block banner_text %}Registra eventos, jugadores y las listas que llegaron a los primeros puestos.{% endblock %}
+{% set values = submitted if submitted else (event or {}) %}
+{% block content %}
+<section class="deck-workspace">
+  <div class="deck-heading"><h1>{{ 'Editar torneo' if event else 'Crear torneo' }}</h1><a class="deck-secondary" href="{{ url_for('tournaments.index') }}">Ver torneos</a></div>
+  {% if error %}<p class="message error" role="alert">{{ error }}</p>{% endif %}
+  <form class="deck-form" id="tournament-editor" method="post" action="{{ url_for('tournaments.manage') }}" data-csrf="{{ csrf_token() }}" data-resolve="{{ url_for('tournaments.resolve', event_id=event.tournament_id) if event else '' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="tournament_id" value="{{ event.tournament_id if event else '' }}">
+    <input type="hidden" name="revision" value="{{ values.get('revision', 0) }}" data-current-revision>
+    <input type="hidden" name="results_json" id="tournament-results-json">
+    <div class="deck-hero-actions"><button class="deck-primary" type="submit" id="tournament-save" disabled>Guardar torneo</button>{% if event %}<a class="deck-secondary" href="{{ url_for('tournaments.detail', event_id=event.tournament_id) }}">Ver ficha pública</a><a class="saved-link" href="{{ url_for('tournaments.manage') }}">Crear otro torneo</a>{% endif %}</div>
+    <fieldset class="deck-panel"><legend>Información del torneo</legend><label>Nombre<input name="name" value="{{ values.get('name', '') }}" maxlength="200" required></label>
+      <div class="deck-form-grid"><label>Fecha<input name="event_date" type="date" required value="{{ values.get('event_date', '') }}"></label><label>Formato<select name="format">{% for format in options.formats %}<option {% if values.get('format', 'Casual') == format %}selected{% endif %}>{{ format }}</option>{% endfor %}</select></label></div>
+      <label>Tienda registrada (opcional)<select name="store_id"><option value="">Sin asociación: ingresar lugar</option>{% for store in options.stores %}<option value="{{ store.shop_id }}" {% if values.get('store_id') == store.shop_id %}selected{% endif %}>{{ store.name }}</option>{% endfor %}{% if values.get('store_id') and values.get('store_id') not in (options.stores|map(attribute='shop_id')|list) %}<option value="{{ values.get('store_id') }}" selected>Tienda no disponible: selecciona otra opción</option>{% endif %}</select></label>
+      <label>Lugar, dirección o nombre de tienda<input name="location" value="{{ values.get('location', '') }}" maxlength="300" placeholder="Puedes escribir una tienda que no esté registrada"></label>
+      <label>Descripción<textarea name="description" maxlength="5000" rows="3">{{ values.get('description', '') }}</textarea></label>
+    </fieldset>
+    <fieldset class="deck-panel"><legend>Resultados y decks</legend><p class="muted">Indica el puesto y el nombre del jugador. Puedes asociarlo a un usuario registrado o dejar solo su nombre. Para el deck, elige uno publicado o escribe su nombre y pega su listado opcional.</p><div id="tournament-entries"></div><button class="deck-secondary" type="button" id="tournament-add-result">+ Agregar resultado</button></fieldset>
+    <noscript><p class="message error">Activa JavaScript para editar los resultados.</p></noscript>
+  </form>
+  <p id="tournament-validation-status" class="deck-status" role="status"></p><button class="deck-secondary" type="button" id="tournament-validation-retry" hidden>Reintentar validación</button><ul id="tournament-validation-errors" class="deck-fine"></ul>
+  <h2>Torneos registrados</h2>
+  <div class="tournament-results">{% for item in events %}<article class="tournament-result"><div><h3>{{ item.name }}</h3><p class="muted">{{ item.event_date }} · {{ item.store_name or item.location }}</p></div><a class="deck-secondary" href="{{ url_for('tournaments.manage', edit=item.tournament_id) }}">Editar</a><form method="post" action="{{ url_for('tournaments.delete', event_id=item.tournament_id) }}" onsubmit="return confirm('¿Eliminar este torneo y sus resultados?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="revision" value="{{ item.revision }}" {% if event and item.tournament_id == event.tournament_id %}data-current-revision{% endif %}><button class="deck-danger" type="submit">Eliminar</button></form></article>{% else %}<p class="muted">Todavía no hay torneos registrados.</p>{% endfor %}</div>
+</section>
+<script type="application/json" id="tournament-initial">{{ {'results': event.results if event else [], 'submitted': submitted.get('results_json') if submitted else none, 'users': options.users, 'decks': options.public_decks}|tojson }}</script>
+<script src="{{ url_for('static', filename='tournaments.js') }}?v=20261018"></script>
+{% endblock %}

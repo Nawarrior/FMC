@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ deck.name }} · {{ 'Decks publicados' if readonly else 'Mis decks' }}{% endblock %}
+{% block banner_title %}{{ 'Explora una nueva estrategia' if readonly else 'Construye tu próxima estrategia' }}{% endblock %}
+{% block banner_text %}{{ 'Descubre las cartas y el equilibrio de este mazo de la comunidad.' if readonly else 'Organiza tus cartas y encuentra el equilibrio de tu mazo.' }}{% endblock %}
+{% block content %}
+<section class="deck-workspace" id="deck-app" data-readonly="{{ 'true' if readonly else 'false' }}" data-base="{{ url_for('decks.detail', deck_id=deck.deck_id) }}" data-analysis="{{ analysis_url if analysis_url else url_for('decks.public_analysis' if readonly else 'decks.analysis', deck_id=deck.deck_id) }}" data-csrf="{{ csrf_token() if not readonly else '' }}">
+  <a class="saved-link" href="{{ back_url if back_url else (url_for('decks.public_index') if readonly else url_for('decks.index')) }}">← {{ back_label if back_label else ('Decks publicados' if readonly else 'Mis decks') }}</a>
+  <header class="deck-hero"><div><div class="deck-title-row"><img id="deck-header-image" class="deck-header-image" alt="" hidden><div><p class="eyebrow"><span id="deck-format">{{ deck.format }}</span> · <span id="deck-visibility">{{ 'Deck publicado' if deck.published else 'Deck privado' }}</span></p><h1 id="deck-name">{{ deck.name }}</h1></div></div><p id="deck-description" class="muted">{{ deck.description }}</p>
+    {% if readonly %}<p class="muted">Por {% if deck.author_profile_url %}<a class="saved-link" href="{{ deck.author_profile_url }}">{{ deck.author_name }}</a>{% else %}{{ deck.author_name }}{% endif %} · Solo lectura</p>
+    {% else %}<div class="deck-hero-actions"><a class="deck-primary" href="#deck-import">Cargar / reemplazar listado</a><a class="deck-secondary" href="{{ url_for('decks.export', deck_id=deck.deck_id) }}">Exportar .txt</a><button class="deck-secondary" type="button" id="deck-edit-toggle">Editar deck</button><button class="deck-secondary" type="button" id="deck-publish">{{ 'Ocultar del catálogo' if deck.published else 'Publicar deck' }}</button><button class="deck-danger" type="button" id="deck-clear">Vaciar listado</button><a class="deck-secondary" id="deck-public-link" href="{{ url_for('decks.public_detail', deck_id=deck.deck_id) }}" {% if not deck.published %}hidden{% endif %}>Ver publicación →</a></div>{% endif %}
+    <div class="deck-hero-actions"><button class="deck-optimize-button" id="deck-optimize" type="button" aria-haspopup="dialog" aria-controls="deck-membership-dialog"><span aria-hidden="true">✦</span> Optimizar y simular</button></div>
+  <section class="deck-insights" aria-label="Resumen del mazo">
+    <div class="deck-insight-price"><span class="eyebrow">Valor aproximado</span><strong id="deck-price">Calculando…</strong><small id="deck-price-coverage"></small><p class="deck-fine muted">USD de la edición cargada: normal o, si no tiene precio, foil. Incluye principal, comandante y sideboard; excluye considerando.</p><a class="saved-link deck-fine" href="https://scryfall.com/docs/api/cards" target="_blank" rel="noopener noreferrer">Precios de referencia: Scryfall ↗</a></div>
+    <div id="deck-commander-insights" {% if deck.format != 'Commander' %}hidden{% endif %}>
+      <span class="eyebrow">Commander</span><strong id="deck-bracket">Calculando bracket mínimo…</strong><p id="deck-game-changer-count" class="deck-fine"></p><details class="deck-insight-details"><summary>Ver cartas Game Changers</summary><div id="deck-game-changers" class="deck-game-changers"></div></details>
+      <p class="deck-fine muted">Mínimo orientativo según Game Changers. No evalúa combos, turnos extra, negación de tierras, velocidad ni intención; el bracket final debe acordarse con la mesa.</p><a class="saved-link deck-fine" href="https://magic.wizards.com/en/formats/commander" target="_blank" rel="noopener noreferrer">Criterios oficiales de brackets ↗</a>
+    </div>
+    <p id="deck-analysis-status" class="deck-fine muted" role="status"></p><button type="button" class="deck-secondary" id="deck-analysis-retry" hidden>Reintentar estimación</button>
+  </section>
+  </div><div class="deck-hero-total"><strong id="deck-total">0</strong><span>cartas en el mazo</span><small id="deck-total-extra"></small></div></header>
+  {% if not readonly %}
+  <section class="deck-panel" id="deck-metadata" hidden>
+    <form id="deck-metadata-form" class="deck-form"><div class="deck-form-grid"><label>Nombre<input name="name" maxlength="120" required value="{{ deck.name }}"></label><label>Formato<select name="format">{% for format in formats %}<option {% if deck.format == format %}selected{% endif %}>{{ format }}</option>{% endfor %}</select></label></div><label>Descripción<textarea name="description" rows="3" maxlength="5000">{{ deck.description }}</textarea></label><div class="deck-hero-actions"><button class="deck-primary" type="submit">Guardar datos</button><button class="deck-danger" type="button" id="deck-delete">Eliminar deck</button></div></form>
+  </section>
+  {% endif %}
+  <p id="deck-status" class="deck-status" role="status" aria-live="polite"></p>{% if not readonly %}<button id="deck-retry" class="deck-secondary" type="button" hidden>Reintentar validación</button>{% endif %}
+  <div class="deck-layout">
+    <div class="deck-main">
+      <div class="deck-toolbar"><div class="deck-view-switch" role="group" aria-label="Visualización"><button type="button" data-view="list" aria-pressed="true">Lista</button><button type="button" data-view="stacks" aria-pressed="false">Pilas</button><button type="button" data-view="grid" aria-pressed="false">Cuadrícula</button></div><label>Agrupar por<select id="deck-group"><option value="type">Tipo de carta</option><option value="mana">Valor de maná</option><option value="color">Color</option></select></label><label>Ordenar<select id="deck-sort"><option value="name">Nombre</option><option value="mana">Valor de maná</option></select></label></div>
+      <div class="deck-board-tabs" role="group" aria-label="Zona del deck">{% for key, label in boards.items() %}<button type="button" data-board="{{ key }}" aria-pressed="{{ 'true' if key == 'main' else 'false' }}">{{ label }} <span data-count="{{ key }}">0</span></button>{% endfor %}</div>
+      <div class="deck-filter"><label class="sr-only" for="deck-filter">Filtrar cartas del deck</label><input id="deck-filter" type="search" placeholder="Filtrar por nombre o texto de la carta…"><span id="deck-visible-count" class="muted"></span></div>
+      <div id="deck-cards" class="deck-groups deck-view-stacks"></div>
+      <noscript><p class="message">Activa JavaScript para visualizar las cartas del deck.</p></noscript>
+      {% if not readonly %}
+      <details class="deck-panel" id="deck-import" {% if not deck.cards %}open{% endif %}>
+        <summary>Cargar / reemplazar listado de cartas</summary><p class="muted">Pega un listado o sube Excel (.xlsx), CSV o TXT. Esta carga reemplaza todas las cartas del deck, incluidas sus zonas. Para sumar una carta individual utiliza “Agregar carta”.</p><p><a class="saved-link" href="{{ url_for('static', filename='examples/deck.txt') }}" download="deck-ejemplo.txt">Descargar listado de ejemplo</a></p>
+        <form id="deck-import-form" class="deck-form"><input type="hidden" name="mode" value="replace"><label>Zona de destino<select name="board">{% for key, label in boards.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label><label>Listado<textarea name="cards_text" rows="8" placeholder="Commander&#10;1 Atraxa, Praetors' Voice&#10;&#10;Deck&#10;1 Sol Ring&#10;1 Arcane Signet&#10;10 Forest"></textarea></label><label>O selecciona un archivo<input type="file" name="file" accept=".txt,.csv,.tsv,.xlsx"></label><p class="muted">Hasta 500 filas y 2 MB. En texto puedes separar las zonas con Commander, Deck, Sideboard y Maybeboard.</p><button class="deck-primary" type="submit">Cargar y reemplazar listado</button></form>
+      </details>
+      {% endif %}
+    </div>
+    <aside class="deck-sidebar">
+      {% if not readonly %}
+      <section class="deck-panel"><h2>Agregar carta</h2><form id="deck-add-form" class="deck-form"><label>Nombre<input id="deck-card-search" name="name" list="deck-suggestions" autocomplete="off" placeholder="Busca una carta…" maxlength="200" required><datalist id="deck-suggestions"></datalist></label><div class="deck-form-grid"><label>Cantidad<input name="quantity" type="number" min="1" max="9999" value="1" required></label><label>Zona<select name="board">{% for key, label in boards.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label></div><button class="deck-primary" type="submit">+ Agregar carta</button></form></section>
+      {% endif %}
+      <section class="deck-panel"><p class="eyebrow">Equilibrio del mazo</p><h2>Curva de maná</h2><div id="deck-curve" class="deck-curve" aria-label="Cartas por valor de maná"></div><div class="deck-stat-row"><span>Valor de maná medio</span><strong id="deck-average">—</strong></div><p class="muted deck-fine">Principal y comandante, sin tierras ni cartas pendientes.</p><div id="deck-types"></div></section>
+      {% if not readonly %}<p class="muted deck-fine">Tus cambios se guardan al editar cada carta. Puedes arrastrar una carta hacia otra zona o usar su selector. El formato es una etiqueta; no se comprueba la legalidad del mazo.</p>{% endif %}
+    </aside>
+  </div>
+  <dialog id="deck-card-dialog" class="deck-dialog"><button id="deck-close-dialog" type="button" class="deck-secondary">Cerrar ×</button><div id="deck-card-detail"></div></dialog>
+  <dialog id="deck-membership-dialog" class="deck-dialog deck-membership-dialog" aria-labelledby="deck-membership-title" aria-describedby="deck-membership-description">
+    <span class="deck-community-mark" aria-hidden="true">FMC</span>
+    <h2 id="deck-membership-title">Optimizar y simular</h2>
+    <p id="deck-membership-description">Para optimizar y simular tu mazo debes ser miembro de la comunidad FMC.</p>
+    <p class="muted">Esta función estará disponible próximamente.</p>
+    <button class="deck-optimize-button" id="deck-membership-close" type="button">Entendido</button>
+  </dialog>
+</section>
+<script type="application/json" id="deck-initial">{{ deck|tojson }}</script>
+<script src="{{ url_for('static', filename='decks.js') }}?v=20261018-optimize"></script>
+{% endblock %}

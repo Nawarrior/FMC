@@ -12,6 +12,25 @@ DATABASE_PATH = Path(os.environ.get("DATABASE_PATH") or DEFAULT_DATABASE_PATH)
 
 
 TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
+    "tournaments": {
+        "columns": {"tournament_id": "TEXT", "name": "TEXT", "event_date": "TEXT", "format": "TEXT",
+                    "location": "TEXT", "store_id": "TEXT", "store_name": "TEXT", "description": "TEXT",
+                    "results": "TEXT", "revision": "INTEGER", "created_at": "TEXT", "updated_at": "TEXT"},
+        "json_fields": {"results"},
+    },
+    "deck_card_market": {
+        "columns": {"card_id": "TEXT", "data": "TEXT", "checked_at": "REAL"},
+        "json_fields": {"data"},
+    },
+    "decks": {
+        "columns": {
+            "deck_id": "TEXT", "user_id": "TEXT", "name": "TEXT", "format": "TEXT",
+            "description": "TEXT", "cards": "TEXT", "revision": "INTEGER",
+            "published": "INTEGER",
+            "created_at": "TEXT", "updated_at": "TEXT",
+        },
+        "json_fields": {"cards"},
+    },
     "news": {
         "columns": {
             "news_id": "TEXT",
@@ -195,8 +214,14 @@ TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
 }
 
 COLLECTION_TABLES = tuple(TABLE_DEFINITIONS.keys())
-BOOLEAN_FIELDS = {"read", "transaction_completed"}
+BOOLEAN_FIELDS = {"read", "transaction_completed", "published"}
 INDEX_DEFINITIONS = (
+    ("idx_tournaments_id", "tournaments", ("tournament_id",), True),
+    ("idx_tournaments_date", "tournaments", ("event_date",), False),
+    ("idx_deck_card_market_id", "deck_card_market", ("card_id",), True),
+    ("idx_decks_identity", "decks", ("deck_id",), True),
+    ("idx_decks_owner", "decks", ("user_id",), False),
+    ("idx_decks_public_format", "decks", ("published", "format"), False),
     ("idx_users_email", "users", ("email",), False),
     ("idx_users_user_id", "users", ("user_id",), False),
     ("idx_saved_cards_user_email", "saved_cards", ("user_email",), False),

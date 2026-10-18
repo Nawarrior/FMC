@@ -1,0 +1,18 @@
+Commander
+1 Atraxa, Praetors' Voice
+
+Deck
+1 Sol Ring
+1 Arcane Signet
+1 Swords to Plowshares
+1 Cultivate
+8 Plains
+8 Island
+8 Swamp
+8 Forest
+
+Sideboard
+1 Negate
+
+Maybeboard
+1 Farseek

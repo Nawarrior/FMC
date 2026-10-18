@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} · Torneos{% endblock %}
+{% block banner_title %}Torneos FMC{% endblock %}
+{% block banner_text %}Jugadores, resultados y estrategias de la comunidad.{% endblock %}
+{% block content %}
+<section class="deck-workspace">
+  <a class="saved-link" href="{{ url_for('tournaments.index') }}">← Torneos</a>
+  <header class="deck-hero"><div><p class="eyebrow">{{ event.format }} · Torneo</p><h1>{{ event.name }}</h1><p><time datetime="{{ event.event_date }}">{{ event.event_date[8:10] }}/{{ event.event_date[5:7] }}/{{ event.event_date[:4] }}</time></p>
+    {% if event.store_name %}<p>{% if event.store_id in store_ids %}<a class="saved-link" href="{{ url_for('store_detail_page', shop_id=event.store_id) }}">{{ event.store_name }}</a>{% else %}{{ event.store_name }}{% endif %}</p>{% endif %}
+    <p class="muted">{{ event.location }}</p><p class="deck-oracle">{{ event.description }}</p>
+    {% if is_admin_user %}<a class="deck-secondary" href="{{ url_for('tournaments.manage', edit=event.tournament_id) }}">Editar torneo</a>{% endif %}
+  </div></header>
+  <h2>Clasificación y decks</h2>
+  <div class="tournament-results">
+    {% for entry in event.results %}<article class="tournament-result">
+      <span class="tournament-position" aria-label="Puesto {{ entry.position }}">{{ entry.position }}<small>Puesto</small></span>
+      <div><h3>{% if entry.user_id in user_ids %}<a class="saved-link" href="{{ url_for('user_profile_page', user_id=entry.user_id) }}">{{ entry.player_name }}</a>{% else %}{{ entry.player_name }}{% endif %}</h3><p class="muted">{{ entry.deck_name }}</p></div>
+      {% if entry.deck_id in deck_ids %}<a class="deck-secondary" href="{{ url_for('decks.public_detail', deck_id=entry.deck_id) }}">Ver deck →</a>{% elif entry.cards %}<a class="deck-secondary" href="{{ url_for('tournaments.deck_detail', event_id=event.tournament_id, entry_id=entry.entry_id) }}">Ver listado →</a>{% else %}<span class="muted deck-fine">Sin listado de cartas</span>{% endif %}
+    </article>{% else %}<p class="deck-empty">Los resultados se publicarán aquí cuando estén disponibles.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Decks publicados · FindMyCard{% endblock %}
+{% block banner_title %}Decks de la comunidad{% endblock %}
+{% block banner_text %}Descubre estrategias y explora los mazos que comparten otros jugadores.{% endblock %}
+{% block content %}
+<section class="deck-workspace">
+  <div class="deck-heading"><div><p class="eyebrow">Ideas para tu próxima partida</p><h1>Decks publicados <span class="deck-count">{{ total }}</span></h1><p class="muted">Explora cualquier mazo publicado en modo lectura.</p></div>{% if current_user %}<a class="deck-primary" href="{{ url_for('decks.index') }}">Mis decks →</a>{% endif %}</div>
+  <form class="deck-form deck-panel" method="get" action="{{ url_for('decks.public_index') }}">
+    <div class="deck-form-grid"><label>Filtrar por formato<select name="format"><option value="">Todos los formatos</option>{% for format in formats %}<option value="{{ format }}" {% if format_filter == format %}selected{% endif %}>{{ format }}</option>{% endfor %}</select></label><label>Filtrar por usuario<select name="user_id"><option value="">Todos los usuarios</option>{% if user_filter and user_filter not in (authors|map(attribute='user_id')|list) %}<option value="{{ user_filter }}" selected>Usuario seleccionado</option>{% endif %}{% for author in authors %}<option value="{{ author.user_id }}" {% if user_filter == author.user_id %}selected{% endif %}>{{ author.name }}</option>{% endfor %}</select></label></div><button class="deck-primary" type="submit">Filtrar decks</button>
+  </form>
+  <div class="deck-library">
+    {% for deck in decks %}
+      {% set ready = deck.cards|selectattr('status', 'equalto', 'ready')|list %}
+      <article class="deck-library-card">
+        <a class="deck-cover" href="{{ url_for('decks.public_detail', deck_id=deck.deck_id) }}" aria-label="Ver {{ deck.name }}">{% if ready and ready[0].card.art_url %}<img src="{{ ready[0].card.art_url }}" alt="" loading="lazy">{% else %}<span aria-hidden="true">✦</span>{% endif %}<span class="deck-format-badge">{{ deck.format }}</span></a>
+        <div class="deck-library-copy"><h2><a class="saved-link" href="{{ url_for('decks.public_detail', deck_id=deck.deck_id) }}">{{ deck.name }}</a></h2><p>{{ deck.description[:130] or 'Descubre las cartas y la estrategia de este mazo.' }}</p><div class="deck-library-meta"><span>{{ deck.cards|sum(attribute='quantity') }} cartas</span><span>Por {% if deck.author_profile_url %}<a class="saved-link" href="{{ deck.author_profile_url }}">{{ deck.author_name }}</a>{% else %}{{ deck.author_name }}{% endif %}</span></div></div>
+      </article>
+    {% else %}<div class="deck-empty"><h2>{{ 'No hay decks con estos filtros' if format_filter or user_filter else 'Todavía no hay decks publicados' }}</h2><p>{{ 'Prueba con otro usuario o formato.' if format_filter or user_filter else 'Los mazos aparecerán aquí cuando sus autores los publiquen.' }}</p></div>{% endfor %}
+  </div>
+  {% if pages > 1 %}<nav class="deck-hero-actions" aria-label="Páginas de decks">{% if page > 1 %}<a class="deck-secondary" href="{{ url_for('decks.public_index', format=format_filter, user_id=user_filter, page=page-1) }}">← Anterior</a>{% endif %}<span>Página {{ page }} de {{ pages }}</span>{% if page < pages %}<a class="deck-secondary" href="{{ url_for('decks.public_index', format=format_filter, user_id=user_filter, page=page+1) }}">Siguiente →</a>{% endif %}</nav>{% endif %}
+</section>
+{% endblock %}

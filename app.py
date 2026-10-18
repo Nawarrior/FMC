@@ -132,11 +132,14 @@ def validate_csrf_token() -> None:
         return
     if request.endpoint == "email_digest_trigger":
         return  # This endpoint authenticates with a private scheduler token.
-    if request.endpoint == "bulk_import_page":
+    if request.endpoint in {"bulk_import_page", "decks.import_cards"}:
         request.max_content_length = 2 * 1024 * 1024 + 65536
     if request.endpoint == "news_import":
         request.max_content_length = 1024 * 1024 + 65536
         request.max_form_memory_size = 1024 * 1024 + 65536
+    if request.endpoint == "tournaments.manage":
+        request.max_content_length = 2 * 1024 * 1024 + 65536
+        request.max_form_memory_size = 2 * 1024 * 1024 + 65536
 
     expected_token = session.get("_csrf_token")
     submitted_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
@@ -1299,9 +1302,10 @@ def build_user_profile_context(user_id: str) -> dict[str, Any] | None:
     normalized_email = (user.get("email") or "").strip().lower()
     country = get_country_meta(user.get("country"))
     saved_cards = [
-        build_saved_card_view(item, index)
+        build_saved_card_view(item, index, hydrate=False)
         for index, item in enumerate(load_saved_cards())
-        if (item.get("user_email") or "").strip().lower() == normalized_email
+        if ((item.get("user_id") or "").strip().lower() == normalized_user_id
+            or (not item.get("user_id") and (item.get("user_email") or "").strip().lower() == normalized_email))
         and not item.get("transaction_completed", False)
     ]
     references = [
@@ -1313,6 +1317,8 @@ def build_user_profile_context(user_id: str) -> dict[str, Any] | None:
         )
     ]
     average_rating = round(sum(item["rating"] for item in references) / len(references), 1) if references else None
+    with get_connection() as connection:
+        published_deck_count = connection.execute("SELECT COUNT(*) FROM decks WHERE user_id = ? AND published = 1", (normalized_user_id,)).fetchone()[0]
 
     return {
         "user": user,
@@ -1320,6 +1326,9 @@ def build_user_profile_context(user_id: str) -> dict[str, Any] | None:
         "saved_cards": saved_cards,
         "references": references,
         "average_rating": average_rating,
+        "busco_count": sum(item.get("intent") == "busco" for item in saved_cards),
+        "ofrezco_count": sum(item.get("intent") == "ofrezco" for item in saved_cards),
+        "published_deck_count": published_deck_count,
         "user_profile_url": url_for("user_profile_page", user_id=normalized_user_id),
     }
 
@@ -1490,10 +1499,23 @@ def community_cards_page() -> str:
     rarity_filter = request.args.get("rarity", "").strip().lower()
     name_filter = request.args.get("name", "").strip()
     normalized_name_filter = name_filter.lower()
+    user_filter = request.args.get("user_id", "").strip().lower()
+    users = get_users()
+    selected_user = next((user for user in users if user.get("user_id") == user_filter), None) if user_filter else None
+    if user_filter and selected_user is None:
+        abort(404)
+    active_cards = [(index, item) for index, item in enumerate(load_saved_cards()) if not item.get("transaction_completed", False)]
+    active_owner_ids = {item.get("user_id") for _, item in active_cards if item.get("user_id")}
+    legacy_owner_emails = {(item.get("user_email") or "").strip().lower() for _, item in active_cards if not item.get("user_id") and item.get("user_email")}
+    available_users = [user for user in users if user.get("user_id") in active_owner_ids
+                       or (user.get("email") or "").strip().lower() in legacy_owner_emails
+                       or user.get("user_id") == user_filter]
+    if selected_user:
+        active_cards = [(index, item) for index, item in active_cards if item.get("user_id") == user_filter
+                        or (not item.get("user_id") and (item.get("user_email") or "").strip().lower() == (selected_user.get("email") or "").strip().lower())]
     saved_cards = [
-        build_saved_card_view(item, index)
-        for index, item in enumerate(load_saved_cards())
-        if not item.get("transaction_completed", False)
+        build_saved_card_view(item, index, hydrate=False)
+        for index, item in active_cards
     ]
     available_rarities = sorted({(item.get("rarity") or "").lower() for item in saved_cards if item.get("rarity")})
 
@@ -1512,6 +1534,9 @@ def community_cards_page() -> str:
         rarity_filter=rarity_filter,
         name_filter=name_filter,
         available_rarities=available_rarities,
+        user_filter=user_filter,
+        available_users=sorted(available_users, key=lambda user: (user.get("name") or "").casefold()),
+        selected_user=selected_user,
     )
 
 
@@ -2067,6 +2092,10 @@ def bulk_import_page() -> Any:
 
 @app.errorhandler(RequestEntityTooLarge)
 def import_too_large(error: RequestEntityTooLarge) -> Any:
+    if request.endpoint == "tournaments.manage":
+        return "El formulario de torneos supera el límite de 2 MB.", 413
+    if request.endpoint == "decks.import_cards":
+        return jsonify(error="El archivo o listado supera el límite de 2 MB."), 413
     if request.endpoint == "news_import":
         flash("El archivo o texto JSON supera el límite de 1 MB.", "error")
         return render_template("news_manage.html", news=[], editing=None, editor=news_defaults(),
@@ -2702,6 +2731,12 @@ def delete_saved_card(item_index: int) -> Any:
     save_saved_cards(saved_cards)
     flash("Registro eliminado.", "success")
     return redirect(url_for("saved_cards_page"))
+
+
+from decks import register_deck_routes
+register_deck_routes(app, current_user_identity)
+from tournaments import register_tournament_routes
+register_tournament_routes(app, require_news_admin)
 
 
 if __name__ == "__main__":
