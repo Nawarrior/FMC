@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Mantenedor de noticias{% endblock %}
+{% block banner_title %}Mantenedor de noticias{% endblock %}
+{% block banner_text %}Crea noticias con imágenes, galerías, datos esenciales y fuentes.{% endblock %}
+{% macro field(name, label, type='text', limit=200, multiline=false) %}
+<label class="news-field">{{ label }}
+{% if multiline %}<textarea name="{{ name }}" rows="3" maxlength="{{ limit }}">{{ editor.get(name, '') }}</textarea>
+{% else %}<input name="{{ name }}" type="{{ type }}" maxlength="{{ limit }}" value="{{ editor.get(name, '') }}">{% endif %}
+</label>
+{% endmacro %}
+{% block content %}
+<section class="saved-panel">
+  <p class="eyebrow">FMC News · Administración</p>
+  <h1>{{ 'Editar noticia' if editing and editing.news_id else 'Publicar noticia' }}</h1>
+  <p><a class="saved-link" href="{{ url_for('news_page') }}">Ver noticias</a></p>
+  <button id="news-import-toggle" type="button" aria-controls="news-json-import" aria-expanded="{{ 'true' if import_open else 'false' }}">Importar noticia desde JSON</button>
+  <section id="news-json-import" class="news-editor-panel" {% if not import_open %}hidden{% endif %}>
+    <h2>Crear noticia desde JSON</h2>
+    <p>Pega el contenido o selecciona un archivo .json de hasta 1 MB. Acepta la plantilla simple y el formato editorial news_article 1.0 con secciones y bloques. Se cargará como una noticia nueva en el editor para que puedas revisarla antes de publicarla.</p>
+    <p><a class="saved-link" href="{{ url_for('static', filename='examples/noticia.json') }}" download="plantilla-noticia.json">Descargar plantilla JSON</a></p>
+    <form class="news-form" method="post" action="{{ url_for('news_import') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="news-field">Archivo JSON<input name="news_json_file" type="file" accept=".json,application/json"></label>
+      <label class="news-field">O pega aquí el JSON<textarea id="news-json-text" name="news_json" rows="12" spellcheck="false" placeholder='{"title": "Título de la noticia", "body": "Contenido de la noticia"}'>{{ import_json_input|default('') }}</textarea></label>
+      <button type="submit">Cargar JSON en el editor</button>
+    </form>
+  </section>
+  <form id="news-editor" class="news-form" method="post" action="{{ url_for('news_manage_page') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="news_id" value="{{ editing.news_id if editing else '' }}">
+    <input type="hidden" name="sections_json" id="news-sections-data">
+    <input type="hidden" name="summary_json" id="news-summary-data">
+    <div class="news-editor-actions">
+      <button type="submit" data-news-submit disabled formaction="{{ url_for('news_preview') }}" formtarget="_blank">Vista previa</button>
+      <button type="submit" data-news-submit disabled>{{ 'Guardar cambios' if editing and editing.news_id else 'Publicar noticia' }}</button>
+      {% if editing %}<a class="saved-link" href="{{ url_for('news_manage_page') }}">Cancelar edición</a>{% endif %}
+    </div>
+    <fieldset class="news-editor-panel">
+      <legend>1. Cabecera de la noticia</legend>
+      <label class="news-field">Título<input name="title" maxlength="200" required value="{{ editing.title if editing else '' }}"></label>
+      {{ field('lead', 'Bajada o resumen', limit=1200, multiline=true) }}
+      <div class="news-editor-grid">
+        {{ field('category', 'Categoría (por ejemplo, Secret Lair)', limit=80) }}
+        {{ field('author', 'Autor', limit=120) }}
+        {{ field('published_on', 'Fecha de publicación', type='date') }}
+        {{ field('reading_time', 'Tiempo de lectura (por ejemplo, 3 minutos)', limit=80) }}
+      </div>
+    </fieldset>
+    <details class="news-editor-panel" {% if editor.get('hero_url') %}open{% endif %}>
+      <summary>2. Imagen principal</summary>
+      {{ field('hero_url', 'Dirección de la imagen', type='url', limit=2000) }}
+      {{ field('hero_alt', 'Descripción de la imagen para lectores de pantalla', limit=300) }}
+      {{ field('hero_caption', 'Pie de imagen y créditos', limit=1000) }}
+      {{ field('hero_source_url', 'Enlace a la fuente de la imagen', type='url', limit=2000) }}
+    </details>
+    <fieldset class="news-editor-panel">
+      <legend>3. Contenido de la noticia</legend>
+      {{ field('editorial_note', 'Nota editorial (opcional)', limit=2000, multiline=true) }}
+      <label class="news-field">Introducción<textarea name="body" rows="5" maxlength="20000">{{ editing.body if editing else '' }}</textarea></label>
+      <p class="muted">Agrega secciones y ordénalas con las flechas. El texto conserva los saltos de línea.</p>
+      <div id="news-sections"></div>
+      <div class="news-editor-actions">
+        <label class="news-field">Tipo de sección<select id="news-block-type"><option value="text">Texto</option><option value="highlights">Contenido destacado (tarjetas numeradas)</option><option value="image">Imagen de producto</option><option value="gallery">Galería de cartas o imágenes</option><option value="list">Lista de elementos (por ejemplo, promos)</option><option value="links">Enlaces y recursos</option><option value="video">Video de YouTube o Twitch</option></select></label>
+        <button id="news-add-section" type="button">Agregar sección</button>
+      </div>
+    </fieldset>
+    <details class="news-editor-panel" {% if editor.get('summary_items') %}open{% endif %}>
+      <summary>4. Columna lateral: lo esencial</summary>
+      {{ field('summary_title', 'Título del resumen', limit=160) }}
+      <div id="news-summary-items"></div>
+      <button id="news-add-summary" type="button">Agregar dato</button>
+      {{ field('summary_note', 'Aclaración del resumen', limit=2000, multiline=true) }}
+      <div class="news-editor-grid">{{ field('button_label', 'Texto del botón (por ejemplo, Visitar tienda)', limit=120) }}{{ field('button_url', 'Dirección del botón', type='url', limit=2000) }}</div>
+    </details>
+    <details class="news-editor-panel">
+      <summary>5. Fuente, créditos y derechos</summary>
+      {{ field('source_label', 'Nombre de la fuente', limit=200) }}
+      {{ field('source_url', 'Enlace a la fuente', type='url', limit=2000) }}
+      {{ field('source_note', 'Fecha de consulta u observaciones', limit=2000, multiline=true) }}
+      {{ field('rights', 'Fuentes, imágenes y derechos', limit=6000, multiline=true) }}
+    </details>
+    <details class="news-editor-panel">
+      <summary>6. Invitación al final de la noticia</summary>
+      {{ field('cta_title', 'Título de la invitación') }}
+      {{ field('cta_text', 'Texto de la invitación', limit=1000, multiline=true) }}
+      <div class="news-editor-grid">{{ field('cta_label', 'Texto del botón', limit=120) }}{{ field('cta_url', 'Dirección del botón', type='url', limit=2000) }}</div>
+    </details>
+    <noscript><p class="message error">Activa JavaScript para editar y guardar los bloques de la noticia.</p></noscript>
+  </form>
+  <h2>Noticias publicadas</h2>
+  <div class="messages-thread-list">
+    {% for item in news %}
+      <article class="saved-card news-article">
+        <h3>{{ item.title }}</h3><p class="muted">{{ item.created_at[:10] }}</p>
+        <div class="news-editor-actions">
+          <a class="detail-link" href="{{ url_for('news_detail_page', news_id=item.news_id) }}">Ver noticia</a>
+          <a class="detail-link" href="{{ url_for('news_manage_page', edit=item.news_id) }}">Editar</a>
+          <form method="post" action="{{ url_for('delete_news', news_id=item.news_id) }}" onsubmit="return confirm('¿Eliminar esta noticia?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Eliminar</button></form>
+        </div>
+      </article>
+    {% else %}<p class="message">Todavía no hay noticias publicadas.</p>{% endfor %}
+  </div>
+</section>
+<script id="news-editor-initial" type="application/json">{{ editor|tojson }}</script>
+<script src="{{ url_for('static', filename='news-editor.js') }}?v=20261018-twitch"></script>
+{% endblock %}

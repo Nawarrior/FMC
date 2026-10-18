@@ -11,7 +11,7 @@ import smtplib
 from typing import Any
 from uuid import uuid4
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 import json
 import time
@@ -22,10 +22,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from mailer import send_email
+from news_content import defaults as news_defaults, parse_content, display_content, TEXT_LIMITS as NEWS_TEXT_LIMITS, import_json as import_news_json, video_details
 from database import (
     add_card_notifications, count_unread_card_notifications, initialize_database,
     load_card_notifications, load_collection, mark_card_notifications_read,
-    migrate_json_files_to_db, save_collection,
+    migrate_json_files_to_db, save_collection, get_connection,
 )
 
 
@@ -133,6 +134,9 @@ def validate_csrf_token() -> None:
         return  # This endpoint authenticates with a private scheduler token.
     if request.endpoint == "bulk_import_page":
         request.max_content_length = 2 * 1024 * 1024 + 65536
+    if request.endpoint == "news_import":
+        request.max_content_length = 1024 * 1024 + 65536
+        request.max_form_memory_size = 1024 * 1024 + 65536
 
     expected_token = session.get("_csrf_token")
     submitted_token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
@@ -1355,7 +1359,129 @@ def index() -> str:
 
 @app.route("/news", methods=["GET"])
 def news_page() -> str:
-    return render_template("news_page.html", search_query="")
+    items = sorted(load_collection("news"), key=lambda item: item.get("created_at") or "", reverse=True)
+    return render_template("news_page.html", news=items, search_query="")
+
+
+@app.get("/news/<news_id>")
+def news_detail_page(news_id: str) -> Any:
+    item = next((item for item in load_collection("news") if item["news_id"] == news_id), None)
+    if item is None:
+        abort(404)
+    return render_template("news_detail.html", item=item, content=display_content(item), search_query="")
+
+
+@app.template_global()
+def news_video_details(url: str) -> dict[str, str]:
+    # Derive Twitch's parent from this request, never from an imported domain.
+    return video_details(url, parent=urlsplit(request.host_url).hostname or "localhost")
+
+
+def require_news_admin() -> None:
+    # Check the stored role on every request, including after an administrator is demoted.
+    user = find_user_by_email(session.get("user", {}).get("email", ""))
+    if not user or normalize_role(user.get("role")) != "adm":
+        abort(403)
+
+
+@app.post("/news/preview")
+def news_preview() -> Any:
+    return news_manage_page(preview=True)
+
+
+@app.post("/news/import")
+def news_import() -> Any:
+    require_news_admin()
+    raw = request.form.get("news_json", "")
+    try:
+        uploaded = request.files.get("news_json_file")
+        if uploaded and uploaded.filename:
+            if raw.strip():
+                raise ValueError("Selecciona un archivo o pega el JSON; usa solo una de las dos opciones.")
+            if not uploaded.filename.lower().endswith(".json"):
+                raise ValueError("Selecciona un archivo con extensión .json.")
+            data = uploaded.read(1024 * 1024 + 1)
+            if len(data) > 1024 * 1024:
+                raise ValueError("El archivo JSON admite hasta 1 MB.")
+            try:
+                raw = data.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                raise ValueError("Guarda el archivo JSON con codificación UTF-8.") from None
+        editing, editor = import_news_json(raw)
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return render_template("news_manage.html", news=load_collection("news"), editing=None,
+                               editor=news_defaults(), import_json_input=raw, import_open=True, search_query=""), 400
+    flash("JSON cargado en el editor. Revisa la vista previa y pulsa Publicar noticia cuando esté listo.", "success")
+    return render_template("news_manage.html", news=load_collection("news"), editing=editing, editor=editor, search_query="")
+
+
+@app.route("/news/manage", methods=["GET", "POST"])
+def news_manage_page(preview: bool = False) -> Any:
+    require_news_admin()
+    if request.method == "POST":
+        news_id = request.form.get("news_id", "").strip()
+        title = request.form.get("title", "").strip()
+        body = request.form.get("body", "").strip()
+        content = {}
+        try:
+            content = parse_content(request.form)
+            if not title or len(title) > 200 or len(body) > 20000 or not (body or content["sections"]):
+                raise ValueError("Ingresa un título de hasta 200 caracteres y un contenido o al menos una sección.")
+        except ValueError as exc:
+            items = sorted(load_collection("news"), key=lambda item: item.get("created_at") or "", reverse=True)
+            flash(str(exc), "error")
+            # Preserve the complete editor, including blocks, after a validation error.
+            content = {key: request.form.get(key, "") for key in ("published_on", *NEWS_TEXT_LIMITS)}
+            for key, field in (("sections", "sections_json"), ("summary_items", "summary_json")):
+                try:
+                    content[key] = json.loads(request.form.get(field, "[]"))
+                    if not isinstance(content[key], list):
+                        content[key] = []
+                except ValueError:
+                    content[key] = []
+            return render_template("news_manage.html", news=items,
+                                   editing={"news_id": news_id, "title": title, "body": body}, editor=content, search_query=""), 400
+        now = datetime.now().isoformat(timespec="seconds")
+        if preview:
+            return render_template("news_detail.html", item={"title": title, "body": body, "created_at": now},
+                                   content=content, preview=True, search_query="")
+        serialized_content = json.dumps(content, ensure_ascii=False)
+        with get_connection() as connection:
+            if news_id:
+                result = connection.execute(
+                    "UPDATE news SET title = ?, body = ?, content = ?, updated_at = ? WHERE news_id = ?",
+                    (title, body, serialized_content, now, news_id),
+                )
+                if not result.rowcount:
+                    abort(404)
+            else:
+                connection.execute(
+                    "INSERT INTO news (position, news_id, title, body, content, created_at, updated_at) "
+                    "VALUES ((SELECT COALESCE(MAX(position), -1) + 1 FROM news), ?, ?, ?, ?, ?, ?)",
+                    (uuid4().hex, title, body, serialized_content, now, now),
+                )
+        flash("Noticia publicada." if not news_id else "Noticia actualizada.", "success")
+        return redirect(url_for("news_manage_page"))
+    items = sorted(load_collection("news"), key=lambda item: item.get("created_at") or "", reverse=True)
+    editing = None
+    if request.args.get("edit"):
+        editing = next((item for item in items if item["news_id"] == request.args["edit"]), None)
+        if editing is None:
+            abort(404)
+    return render_template("news_manage.html", news=items, editing=editing,
+                           editor=display_content(editing) if editing else news_defaults(), search_query="")
+
+
+@app.post("/news/<news_id>/delete")
+def delete_news(news_id: str) -> Any:
+    require_news_admin()
+    with get_connection() as connection:
+        result = connection.execute("DELETE FROM news WHERE news_id = ?", (news_id,))
+        if not result.rowcount:
+            abort(404)
+    flash("Noticia eliminada.", "success")
+    return redirect(url_for("news_manage_page"))
 
 
 @app.route("/community-cards", methods=["GET"])
@@ -1941,6 +2067,10 @@ def bulk_import_page() -> Any:
 
 @app.errorhandler(RequestEntityTooLarge)
 def import_too_large(error: RequestEntityTooLarge) -> Any:
+    if request.endpoint == "news_import":
+        flash("El archivo o texto JSON supera el límite de 1 MB.", "error")
+        return render_template("news_manage.html", news=[], editing=None, editor=news_defaults(),
+                               import_open=True, search_query=""), 413
     return render_template("bulk_import.html", error="El archivo o listado supera el limite de 2 MB.", search_query=""), 413
 
 

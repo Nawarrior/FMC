@@ -8,6 +8,26 @@
   <section class="saved-panel">
     <p class="eyebrow">FMC News</p>
     <h1>Noticias</h1>
-    <section class="message" role="status">Esta página está en construcción.</section>
+    {% if is_admin_user %}
+      <p><a class="detail-link" href="{{ url_for('news_manage_page') }}">Administrar noticias</a></p>
+    {% endif %}
+    {% if current_user %}
+      <p><a class="saved-link" href="{{ url_for('notifications_page') }}">Ver coincidencias de mis cartas{% if unread_card_notification_count %} ({{ unread_card_notification_count }}){% endif %}</a></p>
+    {% endif %}
+    <div class="messages-thread-list">
+      {% for item in news %}
+        <article class="saved-card news-article">
+          {% set content = item.content or {} %}
+          {% if content.hero_url %}<a href="{{ url_for('news_detail_page', news_id=item.news_id) }}"><img class="fmc-news-thumbnail" src="{{ content.hero_url }}" alt="{{ content.hero_alt }}" loading="lazy"></a>{% endif %}
+          {% if content.category %}<p class="eyebrow">{{ content.category }}</p>{% endif %}
+          <h2><a class="saved-link" href="{{ url_for('news_detail_page', news_id=item.news_id) }}">{{ item.title }}</a></h2>
+          <p class="muted"><time datetime="{{ item.created_at }}">{{ item.created_at[:10] }}</time></p>
+          <p class="news-body">{{ content.lead or item.body[:350] }}</p>
+          <a class="detail-link" href="{{ url_for('news_detail_page', news_id=item.news_id) }}">Leer noticia →</a>
+        </article>
+      {% else %}
+        <p class="message">Todavía no hay noticias publicadas.</p>
+      {% endfor %}
+    </div>
   </section>
 {% endblock %}

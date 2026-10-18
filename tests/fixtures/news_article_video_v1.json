@@ -1,0 +1,175 @@
+{
+  "schema_version": "1.0",
+  "type": "news_article",
+  "language": "es-CL",
+  "slug": "creator-vs-reality-fracture-forrest-eric-mtg-arena",
+  "status": "draft",
+  "title": "Control contra agresión: Reality Fracture se enfrenta en Creator VS",
+  "summary": "Forrest y Eric ponen a prueba sus estrategias de Estándar en MTG Arena. Mira el enfrentamiento oficial de Creator VS con cartas de Reality Fracture.",
+  "author": "Redacción FMC",
+  "editorial_date": "2026-10-18",
+  "published_at": null,
+  "category": "MTG Arena",
+  "tags": [
+    "Magic: The Gathering",
+    "MTG Arena",
+    "Reality Fracture",
+    "Estándar",
+    "Creator VS",
+    "Video"
+  ],
+  "banner": {
+    "url": "https://i.ytimg.com/vi/aE02ACWjIJ8/hqdefault.jpg",
+    "alt": "Miniatura oficial del enfrentamiento de Creator VS entre Forrest y Eric en MTG Arena",
+    "caption": "Creator VS: Reality Fracture. Forrest vs. Eric, primer enfrentamiento.",
+    "source_id": "creator-vs-video",
+    "credit": "Miniatura del video del canal oficial Magic: The Gathering Arena, alojada en YouTube.",
+    "rights_notice": "Imagen y material audiovisual de sus respectivos titulares. Fuente: canal oficial de MTG Arena."
+  },
+  "date_note": "Nota editorial del 18 de octubre de 2026, basada en las novedades de MTG Arena publicadas por Wizards of the Coast el 12 de octubre de 2026. El video corresponde al enfrentamiento enlazado en ese anuncio; no se presenta como un estreno de hoy.",
+  "key_facts": {
+    "series": "Creator VS",
+    "platform": "MTG Arena",
+    "format": "Estándar",
+    "set": "Reality Fracture",
+    "featured_match": "Forrest vs. Eric",
+    "source_id": "arena-announcement"
+  },
+  "content": [
+    {
+      "type": "section",
+      "heading": "Dos maneras de afrontar el Multiverso",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Creator VS vuelve con partidas de Estándar y cartas de Reality Fracture. El anuncio oficial reúne a invitados habituales y miembros de Guild Pack para mostrar distintas estrategias en MTG Arena.",
+          "source_id": "arena-announcement"
+        },
+        {
+          "type": "paragraph",
+          "text": "Forrest juega Fatehold Control con Jace, Reality Sculptor, mientras Eric apuesta por Stingerquill Aggro con Ingris Stingerquill. El primer enfrentamiento entre ambos está disponible en el video oficial incluido en esta noticia.",
+          "source_id": "arena-announcement"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Las estrategias de esta edición",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "Forrest: Fatehold Control, con Jace, Reality Sculptor.",
+            "Eric: Stingerquill Aggro, con Ingris Stingerquill.",
+            "Mar: Vigorbloom Life Gain, con Ajani Resolute y Titanbones, Towering Heart.",
+            "Bells: Konstrari Stompy, con Aerid Konstrari y Craterclaw Colossus."
+          ],
+          "source_id": "arena-announcement"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Mira el enfrentamiento oficial",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Reproduce el video de Forrest contra Eric o ábrelo directamente en el canal oficial de MTG Arena.",
+          "source_id": "creator-vs-video"
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Ver Forrest vs. Eric en YouTube",
+              "url": "https://www.youtube.com/watch?v=aE02ACWjIJ8"
+            },
+            {
+              "label": "Visitar el canal oficial de MTG Arena",
+              "url": "https://www.youtube.com/@playmtgarena"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Consulta las cartas y la fuente original",
+      "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Anuncio oficial de MTG Arena del 12 de octubre",
+              "url": "https://magic.wizards.com/en/news/mtg-arena/announcements-october-12-2026#CreatorVS"
+            },
+            {
+              "label": "Galería oficial de cartas de Reality Fracture",
+              "url": "https://magic.wizards.com/en/products/reality-fracture/card-image-gallery"
+            },
+            {
+              "label": "Buscar cartas en FindMyCard",
+              "url": "https://nawarrior.pythonanywhere.com/"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "videos": [
+    {
+      "id": "creator-vs-match-one",
+      "provider": "youtube",
+      "video_id": "aE02ACWjIJ8",
+      "title": "CREATOR VS: FRA | Forrest vs Eric | Match One | MTG Arena",
+      "url": "https://www.youtube.com/watch?v=aE02ACWjIJ8",
+      "embed_url": "https://www.youtube-nocookie.com/embed/aE02ACWjIJ8?rel=0",
+      "thumbnail_url": "https://i.ytimg.com/vi/aE02ACWjIJ8/hqdefault.jpg",
+      "aspect_ratio": "16:9",
+      "autoplay": false,
+      "allow_fullscreen": true,
+      "channel_name": "Magic: The Gathering Arena",
+      "channel_url": "https://www.youtube.com/@playmtgarena",
+      "source_id": "creator-vs-video",
+      "credit": "Video del canal oficial Magic: The Gathering Arena. Reproducción mediante el reproductor de YouTube.",
+      "rights_notice": "Contenido audiovisual de sus respectivos titulares. No se aloja una copia del video en FindMyCard."
+    }
+  ],
+  "video_note": "Video enlazado en el anuncio oficial de Wizards. Metadatos y miniatura comprobados mediante YouTube oEmbed el 18 de octubre de 2026. La reproducción depende de la disponibilidad y las condiciones de YouTube.",
+  "sources": [
+    {
+      "id": "arena-announcement",
+      "publisher": "Wizards of the Coast",
+      "authors": [
+        "Kendall Pepple",
+        "John Schork"
+      ],
+      "title": "MTG Arena Announcements – October 12, 2026",
+      "url": "https://magic.wizards.com/en/news/mtg-arena/announcements-october-12-2026",
+      "publication_date": "2026-10-12",
+      "accessed_date": "2026-10-18"
+    },
+    {
+      "id": "creator-vs-video",
+      "publisher": "Magic: The Gathering Arena",
+      "title": "CREATOR VS: FRA | Forrest vs Eric | Match One | MTG Arena",
+      "url": "https://www.youtube.com/watch?v=aE02ACWjIJ8",
+      "publication_date": null,
+      "accessed_date": "2026-10-18"
+    }
+  ],
+  "rights": {
+    "editorial_credit": "Texto editorial: Redacción FMC.",
+    "images_credit": "Miniatura original del video del canal oficial Magic: The Gathering Arena, alojada por YouTube.",
+    "copyright_notice": "Magic: The Gathering, MTG Arena, sus marcas, diseños y material audiovisual pertenecen a sus respectivos titulares.",
+    "license": null,
+    "attribution_note": "La atribución identifica la procedencia y no concede una licencia de reutilización.",
+    "independence_notice": "FindMyCard presenta esta nota como una publicación editorial independiente, sin afiliación oficial con Wizards of the Coast."
+  },
+  "call_to_action": {
+    "title": "¿Control o agresión?",
+    "text": "Busca las cartas que te interesan y explora tu próxima estrategia en FindMyCard.",
+    "label": "Ir al buscador",
+    "url": "https://nawarrior.pythonanywhere.com/"
+  }
+}

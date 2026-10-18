@@ -1,0 +1,84 @@
+{
+  "title": "Título de tu noticia",
+  "body": "Introducción de la noticia. Reemplaza los textos y las direcciones de ejemplo por tu contenido antes de publicar.",
+  "content": {
+    "category": "Novedades",
+    "lead": "Una breve bajada que resuma la noticia.",
+    "author": "Redacción FMC",
+    "reading_time": "3 minutos",
+    "hero_url": "",
+    "hero_alt": "",
+    "hero_caption": "",
+    "hero_source_url": "",
+    "editorial_note": "Nota editorial opcional.",
+    "sections": [
+      {
+        "type": "text",
+        "title": "Lo que debes saber",
+        "text": "Texto de la primera sección.\nPuedes separar los párrafos con saltos de línea."
+      },
+      {
+        "type": "highlights",
+        "title": "¿Qué incluye?",
+        "items": [
+          {"title": "Primer destacado", "text": "Descripción del primer destacado."},
+          {"title": "Segundo destacado", "text": "Descripción del segundo destacado."},
+          {"title": "Tercer destacado", "text": "Descripción del tercer destacado."}
+        ]
+      },
+      {
+        "type": "image",
+        "title": "Imagen del producto",
+        "items": [
+          {
+            "image_url": "https://example.org/producto.webp",
+            "alt": "Describe el producto que aparece en la imagen",
+            "title": "Nombre del producto",
+            "text": "Pie de imagen opcional.",
+            "credit": "Autor o fuente de la imagen.",
+            "url": "https://example.org/fuente"
+          }
+        ]
+      },
+      {
+        "type": "gallery",
+        "title": "Galería de cartas",
+        "items": [
+          {
+            "title": "Nombre de la carta",
+            "image_url": "https://example.org/carta.webp",
+            "alt": "Describe la carta de la imagen",
+            "credit": "Ilustración y fuente de la imagen."
+          }
+        ]
+      },
+      {
+        "type": "list",
+        "title": "Cartas promocionales",
+        "items": [{"title": "Nombre de la carta", "text": "Detalle de la promoción."}]
+      },
+      {
+        "type": "links",
+        "title": "Para seguir explorando",
+        "items": [{"title": "Anuncio oficial", "url": "https://example.org/anuncio", "text": "Información adicional."}]
+      }
+    ],
+    "summary_title": "Lo que debes recordar",
+    "summary_items": [
+      {"label": "Fecha anunciada", "value": "Indica la fecha"},
+      {"label": "Precio", "value": "Indica el precio y la moneda"},
+      {"label": "Disponibilidad", "value": "Indica las condiciones"}
+    ],
+    "summary_note": "Aclaración sobre precios o disponibilidad.",
+    "button_label": "Más información",
+    "button_url": "https://example.org/producto",
+    "source_label": "Fuente original",
+    "source_url": "https://example.org/anuncio",
+    "source_note": "Indica la fecha de publicación y de consulta de la fuente.",
+    "rights": "Incluye las fuentes, los créditos y los derechos de las imágenes.",
+    "cta_title": "¿Alguna carta va para tu colección?",
+    "cta_text": "Continúa tu búsqueda en FindMyCard.",
+    "cta_label": "Ir al buscador",
+    "cta_url": ""
+  }
+}

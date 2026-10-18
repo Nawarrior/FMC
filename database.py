@@ -12,6 +12,17 @@ DATABASE_PATH = Path(os.environ.get("DATABASE_PATH") or DEFAULT_DATABASE_PATH)
 
 
 TABLE_DEFINITIONS: dict[str, dict[str, Any]] = {
+    "news": {
+        "columns": {
+            "news_id": "TEXT",
+            "title": "TEXT",
+            "body": "TEXT",
+            "content": "TEXT",
+            "created_at": "TEXT",
+            "updated_at": "TEXT",
+        },
+        "json_fields": {"content"},
+    },
     "users": {
         "columns": {
             "user_id": "TEXT",

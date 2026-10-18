@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} · FMC News{% endblock %}
+{% block banner_title %}FMC News{% endblock %}
+{% block banner_text %}Novedades de Magic y FindMyCard.{% endblock %}
+{% macro external(url, text, class='') %}<a class="{{ class }}" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ text }} ↗</a>{% endmacro %}
+{% macro image(entry, hero=false) %}
+<figure class="{{ 'fmc-news-banner' if hero else 'fmc-news-image' }}">
+  <a href="{{ entry.get('url') or entry.image_url }}" target="_blank" rel="noopener noreferrer"><img src="{{ entry.image_url }}" alt="{{ entry.alt }}" {% if hero %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async"></a>
+  {% if entry.title or entry.text or entry.credit or (hero and content.hero_source_url) %}<figcaption>{% if entry.title %}<strong>{{ entry.title }}</strong>{% endif %}{% if entry.text %}<span class="news-body">{{ entry.text }}</span>{% endif %}{% if entry.credit %}<small>{{ entry.credit }}</small>{% endif %}{% if hero and content.hero_source_url %}{{ external(content.hero_source_url, 'Fuente de la imagen') }}{% endif %}</figcaption>{% endif %}
+</figure>
+{% endmacro %}
+{% block content %}
+<div class="fmc-news">
+  {% if preview %}<p class="message">Vista previa: esta noticia todavía no se ha guardado. Puedes cerrar esta pestaña y seguir editando.</p>{% endif %}
+  <nav class="fmc-news-breadcrumb" aria-label="Ruta de navegación"><a href="{{ url_for('index') }}">Inicio</a> / <a href="{{ url_for('news_page') }}">Noticias</a>{% if content.category %} / {{ content.category }}{% endif %}</nav>
+  <article>
+    <header class="fmc-news-hero">
+      <div class="fmc-news-hero-copy">
+        <p class="eyebrow">FMC News {% if content.category %}<span class="fmc-news-category">{{ content.category }}</span>{% endif %}</p>
+        <h1>{{ item.title }}</h1>
+        {% if content.lead %}<p class="fmc-news-lead">{{ content.lead }}</p>{% endif %}
+        <div class="fmc-news-meta"><span>Por {{ content.author or 'Redacción FMC' }}</span><time datetime="{{ content.published_on or item.created_at[:10] }}">{{ content.published_on or item.created_at[:10] }}</time>{% if content.reading_time %}<span>{{ content.reading_time }}</span>{% endif %}</div>
+      </div>
+      {% if content.hero_url %}{{ image({'image_url':content.hero_url, 'alt':content.hero_alt, 'credit':content.hero_caption}, true) }}{% endif %}
+    </header>
+    {% set has_aside = content.summary_items or content.summary_title or content.summary_note or content.button_url or content.source_url or content.source_note %}
+    <div class="fmc-news-layout {{ 'fmc-news-with-aside' if has_aside else '' }}">
+      <div class="fmc-news-article">
+        {% if content.editorial_note %}<div class="fmc-news-editorial news-body">{{ content.editorial_note }}</div>{% endif %}
+        {% if item.body %}<p class="news-body">{{ item.body }}</p>{% endif %}
+        {% for section in content.get('sections', []) %}
+          <section class="fmc-news-section">
+            {% if section.title %}<h2>{{ section.title }}</h2>{% endif %}
+            {% if section.text %}<p class="news-body">{{ section.text }}</p>{% endif %}
+            {% if section.type in ['image', 'gallery'] %}
+              <div class="{{ 'fmc-news-gallery' if section.type == 'gallery' else 'fmc-news-product' }}">{% for entry in section['items'] %}{{ image(entry) }}{% endfor %}</div>
+            {% elif section.type == 'highlights' %}
+              <div class="fmc-news-highlights">{% for entry in section['items'] %}<div class="fmc-news-highlight"><span>{{ '%02d'|format(loop.index) }}</span><h3>{{ entry.title }}</h3><p class="news-body">{{ entry.text }}</p></div>{% endfor %}</div>
+            {% elif section.type == 'links' %}
+              <ul class="fmc-news-resources">{% for entry in section['items'] %}<li>{{ external(entry.url, entry.title) }}{% if entry.text %}<p class="news-body">{{ entry.text }}</p>{% endif %}</li>{% endfor %}</ul>
+            {% elif section.type == 'video' %}
+              {% for entry in section['items'] %}{% set video = news_video_details(entry.url) %}<figure class="fmc-news-video">
+                <div class="fmc-news-player {{ 'fmc-news-twitch' if video.provider == 'twitch' else '' }}"><iframe src="{{ video.embed_url }}" title="{{ entry.title }}" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+                <figcaption><strong>{{ entry.title }}</strong>{% if entry.text %}<p class="news-body">{{ entry.text }}</p>{% endif %}{% if entry.credit %}<small class="news-body">{{ entry.credit }}</small>{% endif %}{{ external(entry.url, 'Ver en Twitch' if video.provider == 'twitch' else 'Ver en YouTube') }}</figcaption>
+              </figure>{% endfor %}
+            {% elif section.type == 'list' %}
+              <ul class="fmc-news-resources">{% for entry in section['items'] %}<li><strong>{{ entry.title }}</strong>{% if entry.text %}<p class="news-body">{{ entry.text }}</p>{% endif %}</li>{% endfor %}</ul>
+            {% endif %}
+          </section>
+        {% endfor %}
+        {% if content.rights %}<section class="fmc-news-rights"><h2>Fuentes, imágenes y derechos</h2><p class="news-body">{{ content.rights }}</p></section>{% endif %}
+      </div>
+      {% if has_aside %}<aside class="fmc-news-aside" aria-label="Datos y fuentes de la noticia">
+        {% if content.summary_items or content.summary_title or content.summary_note or content.button_url %}<section class="fmc-news-summary">
+          <p class="eyebrow">Lo esencial</p><h2>{{ content.summary_title or 'En resumen' }}</h2>
+          <dl>{% for entry in content.get('summary_items', []) %}<dt>{{ entry.label }}</dt><dd>{{ entry.value }}</dd>{% endfor %}</dl>
+          {% if content.summary_note %}<p class="muted news-body">{{ content.summary_note }}</p>{% endif %}
+          {% if content.button_url %}{{ external(content.button_url, content.button_label or 'Más información', 'fmc-news-button') }}{% endif %}
+        </section>{% endif %}
+        {% if content.source_url or content.source_note %}<section class="fmc-news-source"><h2>Fuente de la noticia</h2>{% if content.source_url %}{{ external(content.source_url, content.source_label or 'Leer la fuente original') }}{% endif %}<p class="news-body">{{ content.source_note }}</p></section>{% endif %}
+      </aside>{% endif %}
+    </div>
+    {% if content.cta_title or content.cta_text or content.cta_url %}<section class="fmc-news-cta"><div><h2>{{ content.cta_title }}</h2><p>{{ content.cta_text }}</p></div>{% if content.cta_url %}{{ external(content.cta_url, content.cta_label or 'Explorar', 'fmc-news-button') }}{% endif %}</section>{% endif %}
+  </article>
+</div>
+{% endblock %}

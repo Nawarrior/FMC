@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/keyrune@latest/css/keyrune.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mana-font@latest/css/mana.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20261016-mobile-banners">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20261018-twitch">
 </head>
 <body>
   <header class="site-header">
@@ -27,14 +27,15 @@
           <a class="nav-link" href="{{ url_for('saved_cards_page') }}">Mi listado</a>
           <a class="nav-link" href="{{ url_for('products_catalog_page') }}">Productos</a>
           <a class="nav-link" href="{{ url_for('stores_catalog_page') }}">Tiendas</a>
+          <a class="nav-link" href="{{ url_for('news_page') }}">Noticias</a>
           {% if current_user %}
             {% if cart_count %}
               <a class="nav-link" href="{{ url_for('cart_page') }}">Carrito ({{ cart_count }})</a>
             {% endif %}
             <a class="nav-link" href="{{ url_for('messages_page') }}">Mensajes{% if unread_message_count %} ({{ unread_message_count }}){% endif %}</a>
-            <a class="nav-link" href="{{ url_for('notifications_page') }}">Notificaciones{% if unread_card_notification_count %} ({{ unread_card_notification_count }}){% endif %}</a>
           {% endif %}
           {% if is_admin_user %}
+            <a class="nav-link" href="{{ url_for('news_manage_page') }}">Mantenedor Noticias</a>
             <a class="nav-link" href="{{ url_for('search_history_page') }}">Busquedas</a>
             <a class="nav-link" href="{{ url_for('products_page') }}">Mantenedor Productos</a>
             <a class="nav-link" href="{{ url_for('stores_page') }}">Mantenedor Tiendas</a>

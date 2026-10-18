@@ -1,0 +1,227 @@
+{
+  "schema_version": "1.0",
+  "type": "news_article",
+  "language": "es-CL",
+  "slug": "revive-final-pro-tour-lorwyn-eclipsed-larsen-portolan",
+  "status": "draft",
+  "title": "Revive la final del Pro Tour Lorwyn Eclipsed: Larsen conquista Richmond",
+  "summary": "Christoffer Larsen y Toni Portolan llevaron la final hasta una quinta partida. Repasamos el triunfo de Dimir Excruciator con fotos oficiales, análisis en video y un clip del torneo.",
+  "author": "Redacción FMC",
+  "editorial_date": "2026-10-18",
+  "published_at": null,
+  "category": "Torneos",
+  "tags": [
+    "Magic: The Gathering",
+    "Pro Tour",
+    "Lorwyn Eclipsed",
+    "Estándar",
+    "Christoffer Larsen",
+    "Retrospectiva"
+  ],
+  "date_note": "Retrospectiva editorial del 18 de octubre de 2026. El torneo se celebró del 30 de enero al 1 de febrero de 2026; no es un resultado de hoy.",
+  "banner": {
+    "url": "https://images.ctfassets.net/ryplwhabvmmk/23DzfpQFjIEKV7SiqI7zig/5cf0dafeaed9b32dedef639151fa10e1/Pro-Tour-Lorwyn-Eclipsed-Christoffer-Larsen-Trophy-1920x1280.jpg",
+    "alt": "Christoffer Larsen con el trofeo del Pro Tour Lorwyn Eclipsed",
+    "caption": "Christoffer Larsen, campeón del Pro Tour Lorwyn Eclipsed en Richmond.",
+    "source_id": "official-event",
+    "credit": "Fotografía publicada en la cobertura oficial de Magic.gg. Autor individual no identificado en la página consultada.",
+    "rights_notice": "Imagen y derechos de sus respectivos titulares. Fuente: Wizards of the Coast / Magic.gg."
+  },
+  "key_facts": {
+    "event": "Pro Tour Lorwyn Eclipsed",
+    "start_date": "2026-01-30",
+    "end_date": "2026-02-01",
+    "location": "Richmond, Virginia, Estados Unidos",
+    "champion": "Christoffer Larsen",
+    "finalist": "Toni Portolan",
+    "champion_deck": "Dimir Excruciator",
+    "finalist_deck": "Temur Harmonizer",
+    "final_format": "Estándar",
+    "source_ids": [
+      "official-finals",
+      "official-metagame"
+    ]
+  },
+  "content": [
+    {
+      "type": "section",
+      "heading": "Una final que llegó hasta la quinta partida",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Christoffer Larsen conquistó el Pro Tour Lorwyn Eclipsed al derrotar a Toni Portolan en una final que se resolvió en la quinta partida. Richmond reunió a más de 300 competidores en el primer Pro Tour de 2026.",
+          "source_id": "official-finals"
+        },
+        {
+          "type": "image",
+          "url": "https://images.ctfassets.net/ryplwhabvmmk/63P0orwM8VI3gFAPU2tPAq/08843d44954775b60e92752ddefada20/Pro-Tour-Lorwyn-Eclipsed-Finals-Match-960x640.jpg",
+          "alt": "Christoffer Larsen y Toni Portolan durante la final del Pro Tour Lorwyn Eclipsed",
+          "caption": "Los finalistas durante el enfrentamiento por el título.",
+          "source_id": "official-feature",
+          "credit": "Fotografía publicada en Magic.gg. Autor individual no identificado en la página consultada.",
+          "rights_notice": "Imagen y derechos de sus respectivos titulares. Fuente: Wizards of the Coast / Magic.gg."
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Dimir Excruciator frente a Temur Harmonizer",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Larsen apostó por Dimir Excruciator; Portolan llegó con Temur Harmonizer. La estrategia del campeón combinó descarte y presión, con Deceit, Superior Spider-Man y Doomsday Excruciator entre las piezas destacadas por la cobertura oficial.",
+          "source_id": "official-metagame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portolan forzó la partida decisiva con una remontada en el cuarto juego. En el quinto, Larsen volvió a atacar la mano rival y cerró la serie para levantar su primer trofeo de Pro Tour.",
+          "source_id": "official-finals"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Videos para revivir el torneo",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "El video de Hungry On Plane ofrece un análisis independiente de la final. El clip de Twitch procede de la galería oficial del torneo en Magic.gg. Son piezas distintas: análisis de un creador y un momento de la retransmisión oficial."
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Ver el análisis de Hungry On Plane en YouTube",
+              "url": "https://www.youtube.com/watch?v=eqUpIGSvCDg"
+            },
+            {
+              "label": "Ver el clip oficial de la victoria de Larsen",
+              "url": "https://clips.twitch.tv/BovineHeartlessMosquitoWow-u_N0IBFc03QCIzpy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Cobertura y listas oficiales",
+      "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Página oficial del torneo",
+              "url": "https://magic.gg/events/pro-tour-lorwyn-eclipsed"
+            },
+            {
+              "label": "Crónica oficial de la final",
+              "url": "https://magic.gg/news/the-finals-of-pro-tour-lorwyn-eclipsed"
+            },
+            {
+              "label": "Jugadores y mazos del Top 8",
+              "url": "https://magic.gg/news/top-8-players-and-decks-of-pro-tour-lorwyn-eclipsed"
+            },
+            {
+              "label": "Análisis oficial del metajuego",
+              "url": "https://magic.gg/news/metagame-mentor-standard-win-rates-and-lessons-from-pro-tour-lorwyn-eclipsed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "videos": [
+    {
+      "id": "final-analysis",
+      "provider": "youtube",
+      "video_id": "eqUpIGSvCDg",
+      "title": "Was This The New Greatest Pro Tour Finals Ever?",
+      "url": "https://www.youtube.com/watch?v=eqUpIGSvCDg",
+      "embed_url": "https://www.youtube-nocookie.com/embed/eqUpIGSvCDg?rel=0",
+      "thumbnail_url": "https://i.ytimg.com/vi/eqUpIGSvCDg/hqdefault.jpg",
+      "aspect_ratio": "16:9",
+      "autoplay": false,
+      "allow_fullscreen": true,
+      "channel_name": "Hungry On Plane",
+      "channel_url": "https://www.youtube.com/@HungryOnPlane",
+      "source_id": "analysis-video",
+      "credit": "Análisis de Hungry On Plane. No es una retransmisión oficial de Wizards.",
+      "rights_notice": "Video, edición y material incorporado pertenecen a sus respectivos titulares. Reproducción mediante YouTube."
+    },
+    {
+      "id": "official-win-clip",
+      "provider": "twitch",
+      "video_id": "BovineHeartlessMosquitoWow-u_N0IBFc03QCIzpy",
+      "title": "Christoffer Larsen Wins Pro Tour Lorwyn Eclipsed",
+      "url": "https://clips.twitch.tv/BovineHeartlessMosquitoWow-u_N0IBFc03QCIzpy",
+      "embed_url": "https://clips.twitch.tv/embed?clip=BovineHeartlessMosquitoWow-u_N0IBFc03QCIzpy&parent=nawarrior.pythonanywhere.com&autoplay=false",
+      "embed_parent_domain": "nawarrior.pythonanywhere.com",
+      "aspect_ratio": "16:9",
+      "autoplay": false,
+      "allow_fullscreen": true,
+      "source_id": "official-event",
+      "credit": "Clip de la cobertura oficial enlazado en la página del torneo de Magic.gg.",
+      "rights_notice": "Retransmisión y derechos de sus respectivos titulares. Reproducción mediante Twitch."
+    }
+  ],
+  "video_note": "YouTube: título y autor comprobados mediante oEmbed. Twitch: clip identificado en la galería oficial del torneo. La reproducción depende de la disponibilidad de cada plataforma. El parámetro parent de Twitch debe coincidir con el dominio donde se incruste el reproductor.",
+  "sources": [
+    {
+      "id": "official-event",
+      "publisher": "Wizards of the Coast / Magic.gg",
+      "title": "Pro Tour Lorwyn Eclipsed",
+      "url": "https://magic.gg/events/pro-tour-lorwyn-eclipsed",
+      "publication_date": null,
+      "accessed_date": "2026-10-18"
+    },
+    {
+      "id": "official-finals",
+      "publisher": "Magic.gg",
+      "authors": ["Corbin Hosler"],
+      "title": "The Finals of Pro Tour Lorwyn Eclipsed",
+      "url": "https://magic.gg/news/the-finals-of-pro-tour-lorwyn-eclipsed",
+      "publication_date": "2026-02-02",
+      "accessed_date": "2026-10-18"
+    },
+    {
+      "id": "official-feature",
+      "publisher": "Magic.gg",
+      "authors": ["Corbin Hosler"],
+      "title": "The Week That Was: Finding the Fun in the Finals",
+      "url": "https://magic.gg/news/the-week-that-was-finding-the-fun-in-the-finals",
+      "publication_date": "2026-02-06",
+      "accessed_date": "2026-10-18"
+    },
+    {
+      "id": "official-metagame",
+      "publisher": "Magic.gg",
+      "authors": ["Frank Karsten"],
+      "title": "Metagame Mentor: Standard Win Rates and Lessons from Pro Tour Lorwyn Eclipsed",
+      "url": "https://magic.gg/news/metagame-mentor-standard-win-rates-and-lessons-from-pro-tour-lorwyn-eclipsed",
+      "publication_date": null,
+      "accessed_date": "2026-10-18"
+    },
+    {
+      "id": "analysis-video",
+      "publisher": "Hungry On Plane",
+      "title": "Was This The New Greatest Pro Tour Finals Ever?",
+      "url": "https://www.youtube.com/watch?v=eqUpIGSvCDg",
+      "publication_date": "2026-04-28",
+      "accessed_date": "2026-10-18"
+    }
+  ],
+  "rights": {
+    "editorial_credit": "Texto editorial: Redacción FMC.",
+    "images_credit": "Fotografías originales publicadas por Wizards of the Coast en Magic.gg. Autores individuales no identificados en las páginas consultadas.",
+    "copyright_notice": "Magic: The Gathering y sus marcas pertenecen a sus respectivos titulares. Fotografías y videos conservan los derechos de sus respectivos titulares.",
+    "license": null,
+    "attribution_note": "La atribución identifica la procedencia y no concede una licencia de reutilización.",
+    "independence_notice": "Publicación editorial independiente de FindMyCard, sin afiliación oficial con Wizards of the Coast ni con los creadores citados."
+  },
+  "call_to_action": {
+    "title": "Explora las cartas del torneo",
+    "text": "Busca las piezas que te interesan en FindMyCard.",
+    "label": "Ir al buscador",
+    "url": "https://nawarrior.pythonanywhere.com/"
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "schema_version": "1.0",
+  "type": "news_article",
+  "language": "es-CL",
+  "slug": "festival-in-a-box-atlanta-2026-lanzamiento-19-octubre",
+  "status": "draft",
+  "title": "Festival in a Box: Atlanta 2026 llega mañana",
+  "summary": "Una caja de Mystery Booster Commander Edition, un Secret Lair foil y cuatro promos: esto es lo que trae el lanzamiento del 19 de octubre.",
+  "author": "Redacción FMC",
+  "editorial_date": "2026-10-18",
+  "published_at": null,
+  "category": "Secret Lair",
+  "tags": [
+    "Magic: The Gathering",
+    "Secret Lair",
+    "Commander",
+    "Festival in a Box",
+    "Atlanta 2026"
+  ],
+  "banner": {
+    "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/VbqFabKvbr.webp",
+    "alt": "Imagen oficial del contenido de Festival in a Box Atlanta 2026",
+    "caption": "Festival in a Box: Atlanta 2026. Imagen oficial del producto.",
+    "source_id": "wizards-announcement",
+    "credit": "Imagen de producto: Wizards of the Coast.",
+    "rights_notice": "© Wizards of the Coast LLC. Derechos de sus respectivos titulares."
+  },
+  "date_note": "Nota editorial del 18 de octubre de 2026, basada en el anuncio oficial de Wizards of the Coast publicado el 5 de octubre de 2026. El lanzamiento anunciado es el 19 de octubre de 2026.",
+  "key_facts": {
+    "release_date": "2026-10-19",
+    "announced_price": {
+      "amount": "249.99",
+      "currency": "USD"
+    },
+    "purchase_limit_per_customer": 2,
+    "availability": "Hasta agotar existencias",
+    "purchase_url": "https://secretlair.wizards.com/",
+    "price_note": "Precio anunciado en dólares estadounidenses. Consulta las condiciones de envío a Chile y el importe final en la tienda oficial.",
+    "source_id": "wizards-announcement"
+  },
+  "content": [
+    {
+      "type": "section",
+      "heading": "Commander tiene una cita mañana",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Festival in a Box: Atlanta 2026 se pondrá a la venta el 19 de octubre en Secret Lair. Wizards anunció un precio de US$249,99, disponibilidad hasta agotar existencias y un máximo de dos unidades por cliente.",
+          "source_id": "wizards-announcement"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "¿Qué incluye?",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "Una caja de Mystery Booster Commander Edition con 24 sobres de 20 cartas cada uno.",
+            "Secret Gallery: Atlanta Foil Edition: Parallax Tide, Regrowth, Viridian Revel y Assassin’s Trophy.",
+            "Cuatro cartas promocionales: tres promos foil sin texto y una carta de prueba."
+          ],
+          "source_id": "wizards-announcement"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "La caja de Mystery Booster Commander Edition",
+      "blocks": [
+        {
+          "type": "image",
+          "url": "https://media.wizards.com/2026/images/daily/VbqFabKvbr/heqm2no634.webp",
+          "alt": "Caja oficial de sobres Mystery Booster Commander Edition",
+          "caption": "Imagen original de la caja de Mystery Booster Commander Edition.",
+          "source_id": "wizards-announcement",
+          "credit": "Imagen de producto: Wizards of the Coast.",
+          "rights_notice": "© Wizards of the Coast LLC. Derechos de sus respectivos titulares."
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Las cuatro cartas de Secret Gallery: Atlanta",
+      "blocks": [
+        {
+          "type": "gallery",
+          "items": [
+            {
+              "name": "Parallax Tide",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_qz4U3p8U29.webp",
+              "alt": "Carta original Parallax Tide de Secret Gallery Atlanta",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            },
+            {
+              "name": "Regrowth",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_GAtdfmTWuF.webp",
+              "alt": "Carta original Regrowth de Secret Gallery Atlanta",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            },
+            {
+              "name": "Viridian Revel",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_alqKq2YiAU.webp",
+              "alt": "Carta original Viridian Revel de Secret Gallery Atlanta",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            },
+            {
+              "name": "Assassin’s Trophy",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_lyyWaOZmjL.webp",
+              "alt": "Carta original Assassin’s Trophy de Secret Gallery Atlanta",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Las promos del paquete",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Dance of the Dead, Tana, the Bloodsower y Tymna the Weaver presentan arte completo, acabado foil y ausencia de texto. Auspicious Aquarium es una carta de prueba.",
+          "source_id": "wizards-announcement"
+        },
+        {
+          "type": "gallery",
+          "items": [
+            {
+              "name": "Dance of the Dead",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_AgjQCI4u6q.webp",
+              "alt": "Promo original Dance of the Dead, ilustración completa sin texto",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            },
+            {
+              "name": "Tana, the Bloodsower",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_x2d989N5re.webp",
+              "alt": "Promo original Tana, the Bloodsower, ilustración completa sin texto",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            },
+            {
+              "name": "Tymna the Weaver",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_niBQfOPuBd.webp",
+              "alt": "Promo original Tymna the Weaver, ilustración completa sin texto",
+              "source_id": "wizards-announcement",
+              "credit": "Imagen: Wizards of the Coast. Ilustración: autor acreditado en la carta original."
+            },
+            {
+              "name": "Auspicious Aquarium",
+              "url": "https://media.wizards.com/2026/images/daily/asdBI0GnUf/en_7wf13cPAAk.webp",
+              "alt": "Carta de prueba original Auspicious Aquarium",
+              "source_id": "wizards-announcement",
+              "credit": "Diseño e ilustración: Mark Rosewater. Imagen: Wizards of the Coast."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Para seguir explorando",
+      "blocks": [
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Anuncio completo de Wizards of the Coast",
+              "url": "https://magic.wizards.com/en/news/announcements/secret-lair-heads-south-with-festival-in-a-box-atlanta-2026-and-mystery-booster-commander-edition"
+            },
+            {
+              "label": "Galería oficial de Mystery Booster Commander Edition",
+              "url": "https://magic.wizards.com/en/products/mystery-booster-commander-edition/card-image-gallery"
+            },
+            {
+              "label": "Tienda oficial de Secret Lair",
+              "url": "https://secretlair.wizards.com/"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "videos": [],
+  "video_note": "No se encontró un video integrado en el anuncio oficial consultado.",
+  "sources": [
+    {
+      "id": "wizards-announcement",
+      "publisher": "Wizards of the Coast",
+      "title": "Secret Lair Heads South with Festival in a Box: Atlanta 2026 and Mystery Booster Commander Edition",
+      "url": "https://magic.wizards.com/en/news/announcements/secret-lair-heads-south-with-festival-in-a-box-atlanta-2026-and-mystery-booster-commander-edition",
+      "publication_date": "2026-10-05",
+      "accessed_date": "2026-10-18"
+    }
+  ],
+  "rights": {
+    "editorial_credit": "Texto editorial: Redacción FMC.",
+    "images_credit": "Imágenes originales publicadas por Wizards of the Coast. Las cartas conservan sus créditos impresos; las ilustraciones pertenecen a sus respectivos titulares.",
+    "copyright_notice": "© Wizards of the Coast LLC. Magic: The Gathering, Secret Lair, sus marcas y diseños pertenecen a sus respectivos titulares.",
+    "license": null,
+    "attribution_note": "La atribución identifica la procedencia y no concede una licencia de reutilización.",
+    "independence_notice": "FindMyCard presenta esta nota como una publicación editorial independiente, sin afiliación oficial con Wizards of the Coast."
+  },
+  "call_to_action": {
+    "title": "¿Alguna va para tu colección?",
+    "text": "Explora cartas y continúa tu búsqueda en FindMyCard.",
+    "label": "Ir al buscador",
+    "url": "https://nawarrior.pythonanywhere.com/"
+  }
+}
